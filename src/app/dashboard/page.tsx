@@ -40,7 +40,7 @@ export default function DashboardPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', width: '100%' }}>
       {/* Header */}
       <div style={{ background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)', padding: '48px 20px 20px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>

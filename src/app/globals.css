@@ -32,3 +32,10 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Force physical centering for RTL compatibility — margin-inline: auto can
+   misfire in some browsers when <body dir="rtl"> is set */
+body > div {
+  margin-left: auto;
+  margin-right: auto;
+}
