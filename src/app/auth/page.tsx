@@ -1,0 +1,117 @@
+'use client'
+
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+
+export default function AuthPage() {
+  const router = useRouter()
+  const [isSignup, setIsSignup] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSubmit() {
+    if (!email || !password) { setError('أدخل البريد وكلمة المرور'); return }
+    setLoading(true); setError('')
+    try {
+      const { error } = isSignup
+        ? await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      router.push('/dashboard')
+    } catch (e: any) {
+      setError(e.message.includes('Invalid') ? 'بريد أو كلمة مرور خاطئة' : e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)',
+        borderBottom: '1px solid var(--border)',
+        padding: '48px 20px 32px',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 48, marginBottom: 8 }}>📖</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--goldL)' }}>مجدول مراجعة الحفظ</div>
+        <div style={{ fontSize: 13, color: 'var(--sub)', marginTop: 6 }}>سجّل دخولك للوصول من أي جهاز</div>
+      </div>
+
+      {/* Form */}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 20, padding: '28px 22px', width: '100%', maxWidth: 380,
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--cream)', textAlign: 'center' }}>
+            {isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}
+          </div>
+
+          <input
+            type="email"
+            placeholder="البريد الإلكتروني"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            style={inputStyle}
+          />
+          <input
+            type="password"
+            placeholder="كلمة المرور"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            style={inputStyle}
+          />
+
+          {error && (
+            <div style={{ fontSize: 12, color: '#e07070', textAlign: 'center' }}>{error}</div>
+          )}
+
+          <button onClick={handleSubmit} disabled={loading} style={primaryBtn}>
+            {loading ? 'جارٍ...' : isSignup ? 'إنشاء حساب' : 'دخول'}
+          </button>
+
+          <div style={{ textAlign: 'center' }}>
+            <button onClick={() => { setIsSignup(!isSignup); setError('') }} style={linkBtn}>
+              {isSignup ? 'لديك حساب؟ سجّل دخولك' : 'ليس لديك حساب؟ سجّل الآن'}
+            </button>
+          </div>
+
+          <div style={{ height: 1, background: 'var(--border)' }} />
+
+          <button onClick={() => router.push('/reset-password')} style={linkBtn}>
+            نسيت كلمة المرور؟
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const inputStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.3)', border: '1.5px solid var(--border)',
+  borderRadius: 12, padding: '13px 16px', fontSize: 15,
+  color: 'var(--cream)', width: '100%', outline: 'none',
+  fontFamily: 'Amiri, serif', direction: 'ltr', textAlign: 'left',
+}
+
+const primaryBtn: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #2a5a3a, #1a3a2a)',
+  border: '1px solid var(--green)', color: '#7ec8a0',
+  padding: 14, borderRadius: 14, cursor: 'pointer',
+  fontSize: 15, fontWeight: 700, width: '100%',
+  fontFamily: 'Amiri, serif',
+}
+
+const linkBtn: React.CSSProperties = {
+  background: 'none', border: 'none', color: 'var(--green)',
+  fontSize: 13, cursor: 'pointer', fontFamily: 'Amiri, serif',
+  textDecoration: 'underline', textUnderlineOffset: 3,
+}

@@ -1,0 +1,90 @@
+'use client'
+
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+
+export default function UpdatePasswordPage() {
+  const router = useRouter()
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleUpdate() {
+    if (!password || !confirm) { setError('أدخل كلمة المرور وتأكيدها'); return }
+    if (password !== confirm) { setError('كلمتا المرور غير متطابقتين'); return }
+    if (password.length < 6) { setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return }
+    setLoading(true); setError('')
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) throw error
+      router.push('/dashboard')
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div style={{
+        background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)',
+        borderBottom: '1px solid var(--border)',
+        padding: '24px 16px 16px',
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>تحديث كلمة المرور</span>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 20, padding: '28px 22px', width: '100%', maxWidth: 380,
+          display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 48 }}>🔒</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>كلمة مرور جديدة</div>
+
+          <input
+            type="password"
+            placeholder="كلمة المرور الجديدة"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={inputStyle}
+          />
+          <input
+            type="password"
+            placeholder="تأكيد كلمة المرور"
+            value={confirm}
+            onChange={e => setConfirm(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleUpdate()}
+            style={inputStyle}
+          />
+
+          {error && <div style={{ fontSize: 12, color: '#e07070' }}>{error}</div>}
+
+          <button onClick={handleUpdate} disabled={loading} style={primaryBtn}>
+            {loading ? 'جارٍ التحديث...' : 'تحديث كلمة المرور'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const inputStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.3)', border: '1.5px solid var(--border)',
+  borderRadius: 12, padding: '13px 16px', fontSize: 15,
+  color: 'var(--cream)', width: '100%', outline: 'none',
+  fontFamily: 'Amiri, serif', direction: 'ltr', textAlign: 'left',
+}
+
+const primaryBtn: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #2a5a3a, #1a3a2a)',
+  border: '1px solid var(--green)', color: '#7ec8a0',
+  padding: 14, borderRadius: 14, cursor: 'pointer',
+  fontSize: 15, fontWeight: 700, width: '100%',
+  fontFamily: 'Amiri, serif',
+}
