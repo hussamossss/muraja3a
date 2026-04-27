@@ -34,17 +34,17 @@ export default function PageDetailsPage() {
   }
 
   const SL: Record<string, string> = { strong: 'قوي', medium: 'متوسط', weak: 'ضعيف' }
-  const SC: Record<string, string> = { strong: '#4a9a6a', medium: '#d4a832', weak: '#c05858' }
+  const SC: Record<string, string> = { strong: '#22C55E', medium: '#F97316', weak: '#EF4444' }
 
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>⏳</div>
-  if (!page)   return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--sub)' }}>الصفحة غير موجودة</div>
+  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>⏳</div>
+  if (!page)   return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', color: 'var(--sub)' }}>الصفحة غير موجودة</div>
 
   const isOverdue = page.next_review_date <= todayStr()
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)', padding: '24px 16px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: 'var(--bg)', padding: '24px 16px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
         <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>تفاصيل الصفحة</span>
       </div>
@@ -52,8 +52,8 @@ export default function PageDetailsPage() {
       {/* Body */}
       <div style={{ flex: 1, padding: '18px 16px 40px', overflowY: 'auto' }}>
         {/* Hero */}
-        <div style={{ background: 'linear-gradient(135deg, #1a3a22, #0f2218)', border: '1px solid var(--green)', borderRadius: 20, padding: 28, textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ fontSize: 72, fontWeight: 700, color: 'var(--goldL)', lineHeight: 1 }}>{page.page_number}</div>
+        <div style={{ background: '#161A18', border: '1px solid var(--border)', borderRadius: 20, padding: 28, textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 72, fontWeight: 700, color: 'var(--cream)', lineHeight: 1 }}>{page.page_number}</div>
           <div style={{ fontSize: 13, color: 'var(--sub)', marginTop: 4 }}>صفحة من القرآن الكريم</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
             <span style={badge}>⭐ {page.review_count} مراجعة</span>
@@ -73,7 +73,7 @@ export default function PageDetailsPage() {
           ].map((item, i) => (
             <div key={i} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
               <div style={{ fontSize: 10, color: 'var(--sub)', marginBottom: 4 }}>{item.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: item.warn ? '#e07070' : 'var(--cream)' }}>{item.value}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: item.warn ? 'var(--red)' : 'var(--cream)' }}>{item.value}</div>
             </div>
           ))}
         </div>
@@ -86,7 +86,7 @@ export default function PageDetailsPage() {
         )}
 
         {/* Delete */}
-        <button onClick={handleDelete} disabled={deleting} style={{ background: 'rgba(192,88,88,0.1)', border: '1px solid rgba(192,88,88,0.3)', color: '#e07070', padding: 12, borderRadius: 14, cursor: 'pointer', fontSize: 14, width: '100%', fontFamily: 'Amiri, serif', marginBottom: 24, opacity: deleting ? 0.6 : 1 }}>
+        <button onClick={handleDelete} disabled={deleting} style={{ background: 'rgba(224,80,80,0.1)', border: '1px solid rgba(224,80,80,0.3)', color: 'var(--red)', padding: 12, borderRadius: 14, cursor: 'pointer', fontSize: 14, width: '100%', fontFamily: 'Amiri, serif', marginBottom: 24, opacity: deleting ? 0.6 : 1 }}>
           {deleting ? 'جارٍ الحذف...' : '🗑️ حذف هذه الصفحة'}
         </button>
 
@@ -99,7 +99,7 @@ export default function PageDetailsPage() {
             {logs.map((log, i) => (
               <div key={log.id} style={{ display: 'flex', gap: 12, minHeight: 56 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 14 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: SC[log.strength] || '#8aab8a', flexShrink: 0, marginTop: 4 }} />
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: SC[log.strength] || 'var(--sub)', flexShrink: 0, marginTop: 4 }} />
                   {i < logs.length - 1 && <div style={{ flex: 1, width: 1.5, background: 'var(--border)', margin: '4px 0' }} />}
                 </div>
                 <div style={{ flex: 1, paddingBottom: 16 }}>
@@ -121,5 +121,5 @@ export default function PageDetailsPage() {
 }
 
 const backBtn: React.CSSProperties = { width: 36, height: 36, borderRadius: 10, background: 'transparent', border: '1px solid var(--border)', color: 'var(--sub)', cursor: 'pointer', fontSize: 18 }
-const badge: React.CSSProperties = { fontSize: 11, color: 'var(--gold)', background: 'rgba(201,168,76,0.1)', padding: '3px 10px', borderRadius: 20 }
-const primaryBtn: React.CSSProperties = { background: 'linear-gradient(135deg, #2a5a3a, #1a3a2a)', border: '1px solid var(--green)', color: '#7ec8a0', padding: 14, borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'Amiri, serif' }
+const badge: React.CSSProperties = { fontSize: 11, color: 'var(--gold)', background: 'rgba(212,144,56,0.12)', padding: '3px 10px', borderRadius: 20 }
+const primaryBtn: React.CSSProperties = { background: '#16A34A', border: 'none', color: '#ffffff', padding: 14, borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'Amiri, serif' }

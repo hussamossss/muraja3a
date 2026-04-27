@@ -32,13 +32,13 @@ export default function AuthPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)',
+        background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
         padding: '48px 20px 32px',
         textAlign: 'center',
       }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>📖</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--goldL)' }}>مجدول مراجعة الحفظ</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--cream)' }}>مجدول مراجعة الحفظ</div>
         <div style={{ fontSize: 13, color: 'var(--sub)', marginTop: 6 }}>سجّل دخولك للوصول من أي جهاز</div>
       </div>
 
@@ -71,7 +71,7 @@ export default function AuthPage() {
           />
 
           {error && (
-            <div style={{ fontSize: 12, color: '#e07070', textAlign: 'center' }}>{error}</div>
+            <div style={{ fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>{error}</div>
           )}
 
           <button onClick={handleSubmit} disabled={loading} style={primaryBtn}>
@@ -96,15 +96,14 @@ export default function AuthPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: 'rgba(0,0,0,0.3)', border: '1.5px solid var(--border)',
+  background: '#0F1210', border: '1.5px solid var(--border)',
   borderRadius: 12, padding: '13px 16px', fontSize: 15,
   color: 'var(--cream)', width: '100%', outline: 'none',
   fontFamily: 'Amiri, serif', direction: 'ltr', textAlign: 'left',
 }
 
 const primaryBtn: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #2a5a3a, #1a3a2a)',
-  border: '1px solid var(--green)', color: '#7ec8a0',
+  background: '#16A34A', border: 'none', color: '#ffffff',
   padding: 14, borderRadius: 14, cursor: 'pointer',
   fontSize: 15, fontWeight: 700, width: '100%',
   fontFamily: 'Amiri, serif',

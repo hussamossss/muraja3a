@@ -23,7 +23,6 @@ export default function AddPage() {
       if (authError || !user) { router.push('/auth'); return }
       console.log('authenticated user id:', user.id)
 
-      // Check duplicate
       const { data: existing, error: selectError } = await supabase
         .from('pages')
         .select('id')
@@ -46,7 +45,7 @@ export default function AddPage() {
         review_count: 0,
       })
       if (error) throw error
-      router.push('/dashboard')
+      router.push('/dashboard?added=1')
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -55,9 +54,9 @@ export default function AddPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)', padding: '24px 16px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: 'var(--bg)', padding: '24px 16px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
         <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>إضافة صفحة جديدة</span>
       </div>
@@ -77,12 +76,12 @@ export default function AddPage() {
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
             placeholder="مثال: 25"
             autoFocus
-            style={{ background: 'rgba(0,0,0,0.3)', border: `1.5px solid ${error ? 'var(--red)' : 'var(--border)'}`, borderRadius: 12, padding: 14, fontSize: 28, color: 'var(--goldL)', textAlign: 'center', width: '100%', outline: 'none', fontFamily: 'Amiri, serif' }}
+            style={{ background: '#0F1210', border: `1.5px solid ${error ? 'var(--red)' : 'var(--border)'}`, borderRadius: 12, padding: 14, fontSize: 28, color: 'var(--cream)', textAlign: 'center', width: '100%', outline: 'none', fontFamily: 'Amiri, serif' }}
           />
 
-          {error && <div style={{ fontSize: 12, color: '#e07070', textAlign: 'center' }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>{error}</div>}
 
-          <button onClick={handleAdd} disabled={loading} style={{ background: 'linear-gradient(135deg, #2a5a3a, #1a3a2a)', border: '1px solid var(--green)', color: '#7ec8a0', padding: 14, borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'Amiri, serif', opacity: loading ? 0.6 : 1 }}>
+          <button onClick={handleAdd} disabled={loading} style={{ background: '#16A34A', border: 'none', color: '#ffffff', padding: 14, borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, width: '100%', fontFamily: 'Amiri, serif', opacity: loading ? 0.6 : 1 }}>
             {loading ? 'جارٍ الحفظ...' : 'حفظ الصفحة'}
           </button>
         </div>

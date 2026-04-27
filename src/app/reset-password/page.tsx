@@ -28,9 +28,9 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
       <div style={{
-        background: 'linear-gradient(160deg, #1a3a22 0%, #0f1c14 100%)',
+        background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
         padding: '24px 16px 16px',
         display: 'flex', alignItems: 'center', gap: 12,
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
                 onKeyDown={e => e.key === 'Enter' && handleReset()}
                 style={inputStyle}
               />
-              {error && <div style={{ fontSize: 12, color: '#e07070' }}>{error}</div>}
+              {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
               <button onClick={handleReset} disabled={loading} style={primaryBtn}>
                 {loading ? 'جارٍ الإرسال...' : 'إرسال رابط الاسترجاع'}
               </button>
@@ -78,15 +78,14 @@ export default function ResetPasswordPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: 'rgba(0,0,0,0.3)', border: '1.5px solid var(--border)',
+  background: '#0F1210', border: '1.5px solid var(--border)',
   borderRadius: 12, padding: '13px 16px', fontSize: 15,
   color: 'var(--cream)', width: '100%', outline: 'none',
   fontFamily: 'Amiri, serif', direction: 'ltr', textAlign: 'left',
 }
 
 const primaryBtn: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #2a5a3a, #1a3a2a)',
-  border: '1px solid var(--green)', color: '#7ec8a0',
+  background: '#16A34A', border: 'none', color: '#ffffff',
   padding: 14, borderRadius: 14, cursor: 'pointer',
   fontSize: 15, fontWeight: 700, width: '100%',
   fontFamily: 'Amiri, serif',

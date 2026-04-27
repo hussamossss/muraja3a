@@ -1,20 +1,23 @@
 @import "tailwindcss";
 
 html {
-  background: #0f1c14;
+  background: #0B0D0C;
 }
 
 :root {
-  --bg: #0f1c14;
-  --surface: #162012;
-  --card: #1c2a1e;
-  --border: #2a3d2c;
-  --gold: #c9a84c;
-  --goldL: #e8c870;
-  --cream: #e8d8b0;
-  --sub: #8aab8a;
-  --green: #4a9a6a;
-  --red: #c05858;
+  --bg:        #0B0D0C;
+  --surface:   #131614;
+  --card:      #161A18;
+  --border:    #252B28;
+  --cream:     #FFFFFF;
+  --sub:       #8A8F8F;
+  --green:     #22C55E;
+  --gold:      #F97316;
+  --goldL:     #F97316;
+  --accent:    #38BDF8;
+  --highlight: #A855F7;
+  --orange:    #F97316;
+  --red:       #EF4444;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,8 +36,6 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* Force physical centering for RTL compatibility — margin-inline: auto can
-   misfire in some browsers when <body dir="rtl"> is set */
 body > div {
   margin-left: auto;
   margin-right: auto;
