@@ -10,6 +10,8 @@ export type MistakeLevel =
 
 export type ReviewStage = 'learning' | 'review' | 'mature' | 'fragile'
 
+export type InitialMemoryState = 'new' | 'strong_old' | 'good_old' | 'hesitant_old' | 'weak_old'
+
 export interface Page {
   id: string
   user_id: string
@@ -28,7 +30,8 @@ export interface Page {
   risk_score:        number
   warm_up_count:     number
   consecutive_good:  number
-  last_mistake_level: MistakeLevel | null
+  last_mistake_level:    MistakeLevel | null
+  initial_memory_state:  InitialMemoryState
 }
 
 export interface ReviewLog {
