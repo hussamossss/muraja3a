@@ -188,9 +188,9 @@ function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
   return (
     <div style={{ position:'relative', overflow:'hidden', borderBottom:`1px solid ${C.border}` }}>
 
-      {/* Delete zone — physical left (RTL end), revealed on left-swipe */}
+      {/* Delete zone — revealed on the right when content slides left */}
       <div style={{
-        position:'absolute', left:0, top:0, bottom:0, width: DELETE_W,
+        position:'absolute', right:0, top:0, bottom:0, width: DELETE_W,
         background: C.red,
         display:'flex', alignItems:'center', justifyContent:'center',
       }}>
