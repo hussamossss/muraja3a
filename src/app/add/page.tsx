@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { todayStr, addDays } from '@/lib/spaced-rep'
+import { createInitialState } from '@/lib/quran-scheduler'
 import { uid } from '@/lib/utils'
 
 export default function AddPage() {
@@ -43,6 +44,7 @@ export default function AddPage() {
         current_interval_days: 1,
         last_strength: null,
         review_count: 0,
+        ...createInitialState(),
       })
       if (error) throw error
       router.push('/dashboard?added=1')

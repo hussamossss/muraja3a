@@ -33,8 +33,16 @@ export default function PageDetailsPage() {
     router.push('/dashboard')
   }
 
-  const SL: Record<string, string> = { strong: 'قوي', medium: 'متوسط', weak: 'ضعيف' }
-  const SC: Record<string, string> = { strong: '#22C55E', medium: '#F97316', weak: '#EF4444' }
+  const SL: Record<string, string> = {
+    strong:'قوي', medium:'متوسط', weak:'ضعيف',
+    perfect:'لا أخطاء', minor:'خطأ بسيط', impactful:'خطأ مؤثر',
+    few:'2-3 أخطاء', many:'4-6 أخطاء', lapse:'نسيت تقريبًا',
+  }
+  const SC: Record<string, string> = {
+    strong:'#22C55E', medium:'#F97316', weak:'#EF4444',
+    perfect:'#22C55E', minor:'#84CC16', impactful:'#F97316',
+    few:'#FB923C', many:'#EF4444', lapse:'#7C3AED',
+  }
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>⏳</div>
   if (!page)   return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', color: 'var(--sub)' }}>الصفحة غير موجودة</div>
@@ -57,8 +65,10 @@ export default function PageDetailsPage() {
           <div style={{ fontSize: 13, color: 'var(--sub)', marginTop: 4 }}>صفحة من القرآن الكريم</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
             <span style={badge}>⭐ {page.review_count} مراجعة</span>
-            {page.last_strength && (
-              <span style={{ ...badge, color: SC[page.last_strength] }}>آخر تقييم: {SL[page.last_strength]}</span>
+            {(page.last_mistake_level ?? page.last_strength) && (
+              <span style={{ ...badge, color: SC[page.last_mistake_level ?? page.last_strength ?? ''] }}>
+                آخر تقييم: {SL[page.last_mistake_level ?? page.last_strength ?? '']}
+              </span>
             )}
           </div>
         </div>
@@ -99,12 +109,12 @@ export default function PageDetailsPage() {
             {logs.map((log, i) => (
               <div key={log.id} style={{ display: 'flex', gap: 12, minHeight: 56 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 14 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: SC[log.strength] || 'var(--sub)', flexShrink: 0, marginTop: 4 }} />
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', background: SC[log.mistake_level ?? log.strength] || 'var(--sub)', flexShrink: 0, marginTop: 4 }} />
                   {i < logs.length - 1 && <div style={{ flex: 1, width: 1.5, background: 'var(--border)', margin: '4px 0' }} />}
                 </div>
                 <div style={{ flex: 1, paddingBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: SC[log.strength], fontWeight: 600 }}>{SL[log.strength]}</span>
+                    <span style={{ color: SC[log.mistake_level ?? log.strength], fontWeight: 600 }}>{SL[log.mistake_level ?? log.strength]}</span>
                     <span style={{ fontSize: 11, color: 'var(--sub)' }}>{formatDate(log.reviewed_at)}</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--sub)', marginTop: 2 }}>

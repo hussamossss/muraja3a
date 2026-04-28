@@ -30,13 +30,21 @@ function dateLabel(dateStr: string): string {
   return `${day} ${md}`
 }
 
-function strengthInfo(s: Page['last_strength']): { label: string; color: string } | null {
-  if (!s) return null
-  return {
-    strong: { label: 'قوي',   color: C.green  },
-    medium: { label: 'متوسط', color: C.orange },
-    weak:   { label: 'ضعيف',  color: C.red    },
-  }[s]
+const MISTAKE_LABEL: Record<string, string> = {
+  perfect:'لا أخطاء', minor:'خطأ بسيط', impactful:'خطأ مؤثر',
+  few:'2-3 أخطاء', many:'4-6 أخطاء', lapse:'نسيت',
+  strong:'قوي', medium:'متوسط', weak:'ضعيف',
+}
+const MISTAKE_COLOR: Record<string, string> = {
+  perfect:'#22C55E', minor:'#84CC16', impactful:'#F97316',
+  few:'#FB923C', many:'#EF4444', lapse:'#7C3AED',
+  strong: C.green, medium: C.orange, weak: C.red,
+}
+
+function strengthInfo(page: Page): { label: string; color: string } | null {
+  const key = page.last_mistake_level ?? page.last_strength
+  if (!key) return null
+  return { label: MISTAKE_LABEL[key] ?? key, color: MISTAKE_COLOR[key] ?? C.sub }
 }
 
 export default function CalendarPage() {
@@ -183,7 +191,7 @@ function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
   onOpen: () => void
 }) {
   const startX = useRef<number | null>(null)
-  const badge  = strengthInfo(page.last_strength)
+  const badge  = strengthInfo(page)
 
   return (
     <div style={{ position:'relative', overflow:'hidden', borderBottom:`1px solid ${C.border}` }}>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Page, Strength } from '@/lib/types'
+import { Page, Strength, MistakeLevel } from '@/lib/types'
 import { todayStr, daysDiff, formatDate } from '@/lib/spaced-rep'
 import BottomNav from '@/components/BottomNav'
 
@@ -28,6 +28,15 @@ function dateLabel(dateStr: string): string {
   return formatDate(dateStr)
 }
 
+const MISTAKE_LABEL: Record<MistakeLevel, string> = {
+  perfect:'لا أخطاء', minor:'خطأ بسيط', impactful:'خطأ مؤثر',
+  few:'2-3 أخطاء', many:'4-6 أخطاء', lapse:'نسيت',
+}
+const MISTAKE_COLOR: Record<MistakeLevel, string> = {
+  perfect:'#22C55E', minor:'#84CC16', impactful:'#F97316',
+  few:'#FB923C', many:'#EF4444', lapse:'#7C3AED',
+}
+
 function strengthInfo(s: Strength | null): { label: string; color: string } {
   switch (s) {
     case 'strong': return { label:'قوي',   color: C.green  }
@@ -35,6 +44,13 @@ function strengthInfo(s: Strength | null): { label: string; color: string } {
     case 'weak':   return { label:'ضعيف',  color: C.red    }
     default:       return { label:'جديد',  color: C.sub    }
   }
+}
+
+function getLastLabel(page: Page): { label: string; color: string } {
+  if (page.last_mistake_level) {
+    return { label: MISTAKE_LABEL[page.last_mistake_level], color: MISTAKE_COLOR[page.last_mistake_level] }
+  }
+  return strengthInfo(page.last_strength)
 }
 
 export default function DashboardPage() {
@@ -265,7 +281,7 @@ export default function DashboardPage() {
 function ReviewRow({ page, isOverdue, router }: {
   page: Page; isOverdue: boolean; router: ReturnType<typeof useRouter>
 }) {
-  const { label, color } = strengthInfo(page.last_strength)
+  const { label, color } = getLastLabel(page)
   return (
     <div onClick={() => router.push(`/pages/${page.id}`)} style={{
       display:'flex', alignItems:'center', justifyContent:'space-between',

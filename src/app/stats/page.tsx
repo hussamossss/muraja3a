@@ -31,13 +31,18 @@ export default function StatsPage() {
   const total       = pages.length
   const totalRev    = logs.length
   const todayRev    = logs.filter(l => l.reviewed_at === today).length
-  const strong      = logs.filter(l => l.strength === 'strong').length
-  const medium      = logs.filter(l => l.strength === 'medium').length
-  const weak        = logs.filter(l => l.strength === 'weak').length
-  const maxS        = Math.max(strong, medium, weak, 1)
-  const fresh       = pages.filter(p => p.current_interval_days <= 3).length
-  const mid         = pages.filter(p => p.current_interval_days > 3 && p.current_interval_days <= 14).length
-  const strongMem   = pages.filter(p => p.current_interval_days > 14).length
+  // count by mistake_level (new) with fallback to strength (old)
+  const getCount = (levels: string[]) =>
+    logs.filter(l => levels.includes(l.mistake_level ?? l.strength)).length
+  const excellent = getCount(['perfect', 'minor', 'strong'])
+  const partial   = getCount(['impactful', 'few', 'medium'])
+  const poor      = getCount(['many', 'lapse', 'weak'])
+  const maxS      = Math.max(excellent, partial, poor, 1)
+
+  // memory stages: prefer review_stage if populated, else use current_interval_days
+  const fresh     = pages.filter(p => (p.review_stage ?? 'learning') === 'learning' || p.current_interval_days <= 3).length
+  const mid       = pages.filter(p => p.review_stage === 'review' || (!p.review_stage && p.current_interval_days > 3 && p.current_interval_days <= 14)).length
+  const strongMem = pages.filter(p => p.review_stage === 'mature' || p.review_stage === 'fragile' || (!p.review_stage && p.current_interval_days > 14)).length
 
   let streak = 0
   const days = [...new Set(logs.map(l => l.reviewed_at))].sort().reverse()
@@ -110,9 +115,9 @@ export default function StatsPage() {
           {totalRev === 0
             ? <div style={{ fontSize:13, color:'var(--sub)', textAlign:'center' }}>لا توجد مراجعات بعد</div>
             : [
-                { label:'قوي',   count:strong, color:'#22C55E' },
-                { label:'متوسط', count:medium, color:'#F97316' },
-                { label:'ضعيف',  count:weak,   color:'#EF4444' },
+                { label:'ممتاز', count:excellent, color:'#22C55E' },
+                { label:'جزئي',  count:partial,   color:'#F97316' },
+                { label:'صعب',   count:poor,      color:'#EF4444' },
               ].map((b, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, marginBottom: i < 2 ? 14 : 0 }}>
                   <span style={{
