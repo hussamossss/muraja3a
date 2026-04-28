@@ -48,16 +48,13 @@ function calcNextDate(
 ): string {
   if (!lastReviewedAt) return addDays(today, baseInterval)
 
-  const elapsed = Math.max(0, Math.round(
-    (new Date(today).getTime() - new Date(lastReviewedAt).getTime()) / 86400000
-  ))
-  const remaining = baseInterval - elapsed
+  const targetDate = addDays(lastReviewedAt, baseInterval)
 
-  if (remaining <= 0) {
+  if (targetDate < today) {
     if (state === 'strong_old' || state === 'good_old') return addDays(today, 1)
     return today
   }
-  return addDays(today, Math.min(remaining, 21))
+  return targetDate
 }
 
 // ── memorized_at caps ─────────────────────────────────────────────────────────
@@ -214,11 +211,20 @@ export default function AddPage() {
       const lastReviewedAt = (mode === 'old' && lastDate) ? lastDate : null
       const rawNextDate    = calcNextDate(preset.baseInterval, lastDate, today, activeState)
       const finalCap       = mode === 'old' ? calcFinalCap(activeState, memorizedAt, today) : Infinity
-      const rawInterval    = Math.round(
+
+      // طبّق الـ cap على عدد الأيام من اليوم، ثم استخدم التاريخ الناتج مباشرة
+      const daysFromToday  = Math.max(0, Math.round(
         (new Date(rawNextDate).getTime() - new Date(today).getTime()) / 86400000
-      )
-      const finalInterval  = Math.min(Math.max(rawInterval, 0), finalCap)
-      const finalNextDate  = addDays(today, finalInterval)
+      ))
+      const cappedDays     = Math.min(daysFromToday, finalCap)
+      const finalNextDate  = addDays(today, cappedDays)
+
+      // current_interval_days = أيام من آخر مراجعة إلى الموعد القادم (وليس من اليوم)
+      const finalInterval  = lastReviewedAt
+        ? Math.max(1, Math.round(
+            (new Date(finalNextDate).getTime() - new Date(lastReviewedAt).getTime()) / 86400000
+          ))
+        : Math.max(1, cappedDays || preset.baseInterval)
 
       const { error: insertErr } = await supabase.from('pages').insert({
         id:                    pageId,
@@ -227,7 +233,7 @@ export default function AddPage() {
         created_at:            today,
         last_reviewed_at:      lastReviewedAt,
         next_review_date:      finalNextDate,
-        current_interval_days: finalInterval || preset.baseInterval,
+        current_interval_days: finalInterval,
         last_strength:         null,
         review_count:          0,
         last_mistake_level:    null,

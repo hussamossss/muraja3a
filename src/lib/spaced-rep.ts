@@ -9,18 +9,27 @@ export function calcNewInterval(current: number, strength: Strength): number {
 }
 
 export function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr)
-  d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d + days)
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
 }
 
 export function todayStr(): string {
-  return new Date().toISOString().split('T')[0]
+  const d = new Date()
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-')
 }
 
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('ar-EG', {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('ar-EG', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -29,6 +38,6 @@ export function formatDate(dateStr: string | null): string {
 
 export function daysDiff(dateStr: string): number {
   return Math.round(
-    (new Date(dateStr).getTime() - new Date(todayStr()).getTime()) / 86400000
+    (new Date(dateStr + 'T00:00:00').getTime() - new Date(todayStr() + 'T00:00:00').getTime()) / 86400000
   )
 }
