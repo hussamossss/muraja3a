@@ -32,6 +32,7 @@ export interface Page {
   consecutive_good:  number
   last_mistake_level:    MistakeLevel | null
   initial_memory_state:  InitialMemoryState
+  memorized_at:          string | null
 }
 
 export interface ReviewLog {

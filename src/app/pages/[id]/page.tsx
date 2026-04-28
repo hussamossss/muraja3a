@@ -30,7 +30,7 @@ export default function PageDetailsPage() {
     if (!confirm('هل تريد حذف هذه الصفحة وكل سجلاتها؟')) return
     setDeleting(true)
     await supabase.from('pages').delete().eq('id', id)
-    router.push('/dashboard')
+    router.back()
   }
 
   const SL: Record<string, string> = {
