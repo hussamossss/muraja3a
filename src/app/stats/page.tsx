@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Page, ReviewLog } from '@/lib/types'
 import { todayStr } from '@/lib/spaced-rep'
+import BottomNav from '@/components/BottomNav'
 
 export default function StatsPage() {
   const router = useRouter()
@@ -72,7 +73,7 @@ export default function StatsPage() {
         <span style={{ fontSize:18, fontWeight:700, color:'var(--cream)' }}>إحصائياتك</span>
       </div>
 
-      <div style={{ flex:1, padding:'20px 16px 40px', overflowY:'auto' }}>
+      <div style={{ flex:1, padding:'20px 16px 86px', overflowY:'auto' }}>
 
         {/* Hero — big numbers */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:20, padding:'24px 20px', marginBottom:16, borderTop:'3px solid #22C55E' }}>
@@ -153,11 +154,8 @@ export default function StatsPage() {
           }
         </div>
 
-        <button onClick={async () => { await supabase.auth.signOut(); router.push('/auth') }}
-          style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.25)', color:'#EF4444', padding:14, borderRadius:14, cursor:'pointer', fontSize:14, fontWeight:600, width:'100%', fontFamily:'Amiri, serif' }}>
-          ↩️ تسجيل الخروج
-        </button>
       </div>
+      <BottomNav/>
     </div>
   )
 }

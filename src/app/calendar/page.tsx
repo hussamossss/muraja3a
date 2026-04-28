@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Page } from '@/lib/types'
 import { todayStr, daysDiff, formatDate } from '@/lib/spaced-rep'
+import BottomNav from '@/components/BottomNav'
 
 const C = {
   bg:     '#0B0D0C',
@@ -93,7 +94,7 @@ export default function CalendarPage() {
   )
 
   return (
-    <div style={{ minHeight:'100vh', background: C.bg, paddingBottom:40 }}>
+    <div style={{ minHeight:'100vh', background: C.bg, paddingBottom:86 }}>
 
       {/* Header */}
       <div style={{ background: C.bg, padding:'48px 16px 16px', borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:12 }}>
@@ -165,6 +166,7 @@ export default function CalendarPage() {
           })
         )}
       </div>
+      <BottomNav/>
     </div>
   )
 }

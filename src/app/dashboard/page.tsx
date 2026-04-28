@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Page, Strength } from '@/lib/types'
 import { todayStr, daysDiff, formatDate } from '@/lib/spaced-rep'
+import BottomNav from '@/components/BottomNav'
 
 const C = {
   bg:    '#0B0D0C',
@@ -195,26 +196,7 @@ export default function DashboardPage() {
         `}</style>
       </div>
 
-      {/* ── Bottom Nav ── */}
-      <nav style={{
-        position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)',
-        width:'100%', maxWidth:768, display:'flex', alignItems:'center', justifyContent:'space-around',
-        background: C.navBg, borderTop:`1px solid ${C.sep}`,
-        borderRadius:'20px 20px 0 0', height:66, zIndex:40, padding:'0 10px',
-      }}>
-        <NavTab label="الرئيسية" active color={C.green}
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill={C.green} stroke={C.green} strokeWidth="1.8"><path d="M3 11.5L12 3l9 8.5V21h-6v-5H9v5H3z"/></svg>}
-          onClick={() => router.push('/dashboard')}/>
-        <NavTab label="التقدم" color={C.sub}
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="1.8"><polyline points="4,18 9,12 13,15 20,6"/><circle cx="20" cy="6" r="2" fill={C.sub} stroke="none"/></svg>}
-          onClick={() => router.push('/stats')}/>
-        <NavTab label="التقويم" color={C.sub}
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>}
-          onClick={() => router.push('/calendar')}/>
-        <NavTab label="الحساب" color={C.sub}
-          icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>}
-          onClick={() => {}}/>
-      </nav>
+      <BottomNav/>
 
       {/* ── Hamburger Menu ── */}
       {menuOpen && (
@@ -241,8 +223,8 @@ export default function DashboardPage() {
         {/* Menu items */}
         <div style={{ flex:1, padding:'8px 0' }}>
           {[
-            { icon:'📅', label:'الجلسات القادمة', desc:'عرض صفحاتك المجدولة', action:() => { setMenuOpen(false); router.push('/calendar') } },
-            { icon:'📊', label:'الإحصائيات',      desc:'تقدمك ومراجعاتك',      action:() => { setMenuOpen(false); router.push('/stats')    } },
+            { icon:'📅', label:'الجلسات القادمة', desc:'عرض صفحاتك المجدولة',      action:() => { setMenuOpen(false); router.push('/calendar') } },
+            { icon:'👤', label:'الحساب',          desc:'الإعدادات وتسجيل الخروج', action:() => { setMenuOpen(false); router.push('/account')  } },
           ].map((item, i) => (
             <button key={i} onClick={item.action} style={{
               display:'flex', alignItems:'center', gap:14,
@@ -260,13 +242,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={async () => { setMenuOpen(false); await supabase.auth.signOut(); router.push('/auth') }}
-          style={{ display:'flex', alignItems:'center', gap:12, padding:'16px 18px', background:'none', border:'none', borderTop:`1px solid ${C.sep}`, cursor:'pointer', fontFamily:'Amiri, serif', width:'100%' }}>
-          <span style={{ fontSize:20 }}>↩️</span>
-          <span style={{ fontSize:14, fontWeight:600, color: C.red }}>تسجيل الخروج</span>
-        </button>
       </div>
 
       {/* ── Toast ── */}
@@ -311,17 +286,3 @@ function ReviewRow({ page, isOverdue, router }: {
   )
 }
 
-function NavTab({ label, icon, active, color, onClick }: {
-  label: string; icon: React.ReactNode; active?: boolean; color: string; onClick: () => void
-}) {
-  return (
-    <button onClick={onClick} style={{
-      flex:1, display:'flex', flexDirection:'column', alignItems:'center',
-      justifyContent:'center', background:'none', border:'none',
-      cursor:'pointer', fontFamily:'Amiri, serif', color, gap:2,
-    }}>
-      {icon}
-      <span style={{ fontSize:10, marginTop:2 }}>{label}</span>
-    </button>
-  )
-}
