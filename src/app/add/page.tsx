@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { todayStr, addDays } from '@/lib/spaced-rep'
 import { scheduleReview, MISTAKE_TO_STRENGTH, createInitialState } from '@/lib/quran-scheduler'
+import { loadPageWords } from '@/lib/quran-data'
+import { calcMistakeLevel, saveWordMistakes } from '@/lib/word-scorer'
 import { uid } from '@/lib/utils'
-import type { ReviewStage, InitialMemoryState, MistakeLevel } from '@/lib/types'
+import type { ReviewStage, InitialMemoryState, MistakeLevel, QuranWord } from '@/lib/types'
+import QuranPage from '@/components/QuranPage'
 
 // ── Presets ───────────────────────────────────────────────────────────────────
 type Preset = {
@@ -85,18 +88,51 @@ export default function AddPage() {
   const [mode, setMode]             = useState<'new' | 'old'>('new')
   const [memState, setMemState]     = useState<InitialMemoryState>('strong_old')
   const [lastDate, setLastDate]     = useState('')
-  const [reviewedToday, setReviewedToday] = useState(false)
-  const [todayLevel, setTodayLevel] = useState<MistakeLevel | null>(null)
-  const [memorizedAt, setMemorizedAt] = useState('')
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState('')
+  const [reviewedToday,    setReviewedToday]    = useState(false)
+  const [todayLevel,       setTodayLevel]       = useState<MistakeLevel | null>(null)
+  const [memorizedAt,      setMemorizedAt]      = useState('')
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+  // mode selector inside reviewedToday
+  const [addReviewMode,    setAddReviewMode]    = useState<'quick' | 'words' | null>(null)
+  const [addSelectedKeys,  setAddSelectedKeys]  = useState<Set<string>>(new Set())
+  const [addSelectedWords, setAddSelectedWords] = useState<QuranWord[]>([])
+  const [addAllWords,      setAddAllWords]      = useState<QuranWord[]>([])
 
-  const saveDisabled = loading || (reviewedToday && !todayLevel)
-  const saveLabel    = loading
+  const pageNum = parseInt(value)
+  const validPage = !isNaN(pageNum) && pageNum >= 1 && pageNum <= 604
+
+  // load words when switching to words mode
+  useEffect(() => {
+    if (addReviewMode === 'words' && validPage) {
+      loadPageWords(pageNum).then(setAddAllWords).catch(console.error)
+    }
+  }, [addReviewMode, pageNum, validPage])
+
+  const handleWordToggle = useCallback((word: QuranWord) => {
+    const key = `${word.s}:${word.a}:${word.wi}`
+    setAddSelectedKeys(prev => {
+      const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next
+    })
+    setAddSelectedWords(prev => {
+      const exists = prev.some(w => w.s === word.s && w.a === word.a && w.wi === word.wi)
+      return exists
+        ? prev.filter(w => !(w.s === word.s && w.a === word.a && w.wi === word.wi))
+        : [...prev, word]
+    })
+  }, [])
+
+  const saveDisabled = loading
+    || (reviewedToday && !addReviewMode)
+    || (reviewedToday && addReviewMode === 'quick' && !todayLevel)
+
+  const saveLabel = loading
     ? 'جارٍ الحفظ...'
-    : (reviewedToday && !todayLevel)
-      ? 'اختر نتيجة المراجعة أولاً'
-      : 'حفظ الصفحة'
+    : (reviewedToday && !addReviewMode)
+      ? 'اختر طريقة تسجيل المراجعة'
+      : (reviewedToday && addReviewMode === 'quick' && !todayLevel)
+        ? 'اختر نتيجة المراجعة أولاً'
+        : 'حفظ الصفحة'
 
   function handleModeChange(m: 'new' | 'old') {
     setMode(m)
@@ -104,6 +140,9 @@ export default function AddPage() {
     setTodayLevel(null)
     setLastDate('')
     setMemorizedAt('')
+    setAddReviewMode(null)
+    setAddSelectedKeys(new Set())
+    setAddSelectedWords([])
   }
 
   async function handleAdd() {
@@ -111,7 +150,8 @@ export default function AddPage() {
     if (!value || isNaN(num) || num < 1 || num > 604) {
       setError('أدخل رقمًا صحيحًا من 1 إلى 604'); return
     }
-    if (reviewedToday && !todayLevel) return  // guard — زر disabled لكن احتياطاً
+    if (reviewedToday && !addReviewMode) return
+    if (reviewedToday && addReviewMode === 'quick' && !todayLevel) return
 
     setLoading(true); setError('')
     try {
@@ -130,7 +170,11 @@ export default function AddPage() {
       const pageId       = uid()
 
       // ── مسار المراجعة الأولى ──────────────────────────────────────────────
-      if (mode === 'old' && reviewedToday && todayLevel) {
+      if (mode === 'old' && reviewedToday && addReviewMode) {
+        // حساب todayLevel: من الكلمات المحددة أو من الاختيار السريع
+        const resolvedLevel: MistakeLevel = addReviewMode === 'words'
+          ? await calcMistakeLevel(addSelectedWords, user.id)
+          : (todayLevel ?? 'perfect')
         const virtualPage = {
           ...createInitialState(),
           id: pageId,
@@ -154,8 +198,8 @@ export default function AddPage() {
           memorized_at:         memorizedAt || null,
         }
 
-        const result      = scheduleReview(virtualPage, todayLevel, today)
-        const finalCap    = calcFinalCap(activeState, memorizedAt, today)
+        const result        = scheduleReview(virtualPage, resolvedLevel, today)
+        const finalCap      = calcFinalCap(activeState, memorizedAt, today)
         const finalInterval = Math.min(result.newInterval, finalCap)
         const finalNextDate = addDays(today, finalInterval)
 
@@ -169,7 +213,7 @@ export default function AddPage() {
           current_interval_days: finalInterval,
           last_strength:         null,
           review_count:          1,
-          last_mistake_level:    todayLevel,
+          last_mistake_level:    resolvedLevel,
           initial_memory_state:  activeState,
           memorized_at:          memorizedAt || null,
           stability_days:        result.stabilityAfter,
@@ -182,25 +226,38 @@ export default function AddPage() {
         })
         if (pageErr) throw pageErr
 
+        const logId = uid()
         const { error: logErr } = await supabase.from('review_logs').insert({
-          id:                     uid(),
+          id:                     logId,
           user_id:                user.id,
           page_id:                pageId,
           reviewed_at:            today,
           next_review_date:       finalNextDate,
           previous_interval_days: preset.baseInterval,
           new_interval_days:      finalInterval,
-          mistake_level:          todayLevel,
-          strength:               MISTAKE_TO_STRENGTH[todayLevel],
+          mistake_level:          resolvedLevel,
+          strength:               MISTAKE_TO_STRENGTH[resolvedLevel],
           stability_before:       preset.stability,
           stability_after:        result.stabilityAfter,
           retrievability_before:  result.retrievabilityBefore,
         })
         if (logErr) {
-          // الصفحة أُضيفت لكن تسجيل المراجعة فشل
           console.error('[add] review_log insert failed:', logErr.message)
           router.push('/dashboard?added=1')
           return
+        }
+
+        // حفظ word_mistakes إذا كان mode=words وفيه كلمات محددة
+        if (addReviewMode === 'words' && addSelectedWords.length > 0) {
+          const { error: we } = await saveWordMistakes({
+            userId:        user.id,
+            pageId,
+            pageNumber:    num,
+            reviewLogId:   logId,
+            selectedWords: addSelectedWords,
+            allWords:      addAllWords,
+          })
+          if (we) console.error('[add] word_mistakes failed:', we)
         }
 
         router.push('/dashboard?added=1')
@@ -344,7 +401,13 @@ export default function AddPage() {
           {/* "Reviewed today?" toggle */}
           {mode === 'old' && (
             <button
-              onClick={() => { setReviewedToday(p => !p); setTodayLevel(null) }}
+              onClick={() => {
+                setReviewedToday(p => !p)
+                setTodayLevel(null)
+                setAddReviewMode(null)
+                setAddSelectedKeys(new Set())
+                setAddSelectedWords([])
+              }}
               style={{
                 display:'flex', alignItems:'center', gap:12,
                 padding:'12px 14px', borderRadius:12, cursor:'pointer',
@@ -368,10 +431,41 @@ export default function AddPage() {
             </button>
           )}
 
-          {/* Today's review level */}
-          {mode === 'old' && reviewedToday && (
+          {/* Mode selector when reviewedToday */}
+          {mode === 'old' && reviewedToday && !addReviewMode && (
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setAddReviewMode('quick')} style={{
+                flex:1, padding:'16px 10px', borderRadius:12, cursor:'pointer',
+                border:'1.5px solid var(--border)', background:'#0F1210',
+                display:'flex', flexDirection:'column', alignItems:'center', gap:6,
+                fontFamily:'Amiri, serif', transition:'all .15s',
+              }}>
+                <span style={{ fontSize:24 }}>⚡</span>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--cream)' }}>تقييم سريع</span>
+                <span style={{ fontSize:10, color:'var(--sub)' }}>اختر مستوى الأداء</span>
+              </button>
+              <button onClick={() => setAddReviewMode('words')} disabled={!validPage} style={{
+                flex:1, padding:'16px 10px', borderRadius:12,
+                cursor: validPage ? 'pointer' : 'not-allowed',
+                border:'1.5px solid var(--border)', background:'#0F1210',
+                display:'flex', flexDirection:'column', alignItems:'center', gap:6,
+                fontFamily:'Amiri, serif', transition:'all .15s',
+                opacity: validPage ? 1 : 0.4,
+              }}>
+                <span style={{ fontSize:24 }}>🔤</span>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--cream)' }}>تحديد الكلمات</span>
+                <span style={{ fontSize:10, color:'var(--sub)' }}>حدد الكلمات الخاطئة</span>
+              </button>
+            </div>
+          )}
+
+          {/* Quick mode options */}
+          {mode === 'old' && reviewedToday && addReviewMode === 'quick' && (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <div style={{ fontSize:12, color:'var(--sub)', marginBottom:2, fontWeight:600 }}>كيف كانت المراجعة؟</div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+                <button onClick={() => setAddReviewMode(null)} style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>‹ تغيير</button>
+                <span style={{ fontSize:12, color:'var(--sub)', fontWeight:600 }}>كيف كانت المراجعة؟</span>
+              </div>
               {REVIEW_OPTIONS.map(opt => {
                 const sel = todayLevel === opt.key
                 return (
@@ -389,6 +483,39 @@ export default function AddPage() {
                   </button>
                 )
               })}
+            </div>
+          )}
+
+          {/* Words mode */}
+          {mode === 'old' && reviewedToday && addReviewMode === 'words' && (
+            <div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <button onClick={() => { setAddReviewMode(null); setAddSelectedKeys(new Set()); setAddSelectedWords([]) }}
+                  style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>‹ تغيير</button>
+                <span style={{ fontSize:12, color:'var(--sub)', fontWeight:600 }}>
+                  {addSelectedWords.length > 0
+                    ? `${addSelectedWords.length} كلمة محددة`
+                    : 'اضغط على الكلمات الخاطئة'}
+                </span>
+              </div>
+              {addSelectedWords.length > 0 && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, direction:'rtl', marginBottom:10 }}>
+                  {addSelectedWords.map(w => (
+                    <span key={`${w.s}:${w.a}:${w.wi}`} onClick={() => handleWordToggle(w)}
+                      style={{ fontFamily:'"Amiri Quran", serif', fontSize:16, color:'#EF4444', background:'rgba(239,68,68,0.12)', padding:'2px 8px', borderRadius:16, cursor:'pointer' }}>
+                      {w.t}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
+                <QuranPage
+                  pageNumber={pageNum}
+                  interactive
+                  selectedKeys={addSelectedKeys}
+                  onWordToggle={handleWordToggle}
+                />
+              </div>
             </div>
           )}
 
