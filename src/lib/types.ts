@@ -12,6 +12,31 @@ export type ReviewStage = 'learning' | 'review' | 'mature' | 'fragile'
 
 export type InitialMemoryState = 'new' | 'strong_old' | 'good_old' | 'hesitant_old' | 'weak_old'
 
+// ── Quran word data (static JSON, not user data) ──────────────────────────────
+export interface QuranWord {
+  s:  number  // surah number
+  a:  number  // ayah number
+  wi: number  // word index within ayah (1-based)
+  t:  string  // text_uthmani — Uthmani script with diacritics
+  n:  string  // normalized — without diacritics, for comparison
+}
+
+export interface WordMistake {
+  id:              string
+  user_id:         string
+  page_id:         string
+  review_log_id:   string | null
+  page_number:     number
+  surah_number:    number
+  ayah_number:     number
+  word_index:      number
+  word_text:       string
+  normalized_word: string
+  context_before:  string | null
+  context_after:   string | null
+  created_at:      string
+}
+
 export interface Page {
   id: string
   user_id: string

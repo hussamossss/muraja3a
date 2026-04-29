@@ -19,6 +19,7 @@ export default function AuthPage() {
       const { error } = isSignup
         ? await supabase.auth.signUp({ email, password })
         : await supabase.auth.signInWithPassword({ email, password })
+
       if (error) throw error
       router.push('/dashboard')
     } catch (e: any) {
@@ -53,30 +54,33 @@ export default function AuthPage() {
             {isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}
           </div>
 
-          <input
-            type="email"
-            placeholder="البريد الإلكتروني"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            style={inputStyle}
-          />
-          <input
-            type="password"
-            placeholder="كلمة المرور"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            style={inputStyle}
-          />
+          <form onSubmit={e => { e.preventDefault(); handleSubmit() }}
+            style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            <input
+              type="email"
+              placeholder="البريد الإلكتروني"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              style={inputStyle}
+            />
+            <input
+              type="password"
+              placeholder="كلمة المرور"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
+              style={inputStyle}
+            />
 
-          {error && (
-            <div style={{ fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>{error}</div>
-          )}
+            {error && (
+              <div style={{ fontSize: 12, color: 'var(--red)', textAlign: 'center' }}>{error}</div>
+            )}
 
-          <button onClick={handleSubmit} disabled={loading} style={primaryBtn}>
-            {loading ? 'جارٍ...' : isSignup ? 'إنشاء حساب' : 'دخول'}
-          </button>
+            <button type="submit" disabled={loading} style={primaryBtn}>
+              {loading ? 'جارٍ...' : isSignup ? 'إنشاء حساب' : 'دخول'}
+            </button>
+          </form>
 
           <div style={{ textAlign: 'center' }}>
             <button onClick={() => { setIsSignup(!isSignup); setError('') }} style={linkBtn}>

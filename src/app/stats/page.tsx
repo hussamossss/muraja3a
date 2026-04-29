@@ -3,27 +3,31 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Page, ReviewLog } from '@/lib/types'
+import { Page, ReviewLog, WordMistake } from '@/lib/types'
 import { todayStr } from '@/lib/spaced-rep'
 import BottomNav from '@/components/BottomNav'
 
 export default function StatsPage() {
   const router = useRouter()
-  const [pages, setPages]  = useState<Page[]>([])
-  const [logs, setLogs]    = useState<ReviewLog[]>([])
-  const [loading, setLoading] = useState(true)
+  const [pages,     setPages]     = useState<Page[]>([])
+  const [logs,      setLogs]      = useState<ReviewLog[]>([])
+  const [mistakes,  setMistakes]  = useState<WordMistake[]>([])
+  const [loading,   setLoading]   = useState(true)
 
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/auth'); return }
-    const [pRes, lRes] = await Promise.all([
+    const [pRes, lRes, mRes] = await Promise.all([
       supabase.from('pages').select('*').eq('user_id', session.user.id),
       supabase.from('review_logs').select('*').eq('user_id', session.user.id),
+      supabase.from('word_mistakes').select('word_text, normalized_word, page_number')
+        .eq('user_id', session.user.id),
     ])
     if (pRes.data) setPages(pRes.data)
     if (lRes.data) setLogs(lRes.data)
+    if (mRes.data) setMistakes(mRes.data as WordMistake[])
     setLoading(false)
   }
 
@@ -54,6 +58,19 @@ export default function StatsPage() {
       check = x.toISOString().split('T')[0]
     } else if (d < check) break
   }
+
+  // top 10 mistake words
+  const wordMap = new Map<string, { text: string; count: number; pages: Set<number> }>()
+  mistakes.forEach(m => {
+    const key = m.normalized_word
+    if (!wordMap.has(key)) wordMap.set(key, { text: m.word_text, count: 0, pages: new Set() })
+    const e = wordMap.get(key)!
+    e.count++
+    e.pages.add(m.page_number)
+  })
+  const topWords = [...wordMap.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'var(--bg)' }}>
@@ -133,6 +150,40 @@ export default function StatsPage() {
               ))
           }
         </div>
+
+        {/* Top mistake words */}
+        {topWords.length > 0 && (
+          <>
+            <div style={sectionLabel}>أكثر الكلمات التي أخطأت فيها</div>
+            <div style={{ ...card, marginBottom:20 }}>
+              {topWords.map((w, i) => (
+                <div key={w.text + i} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  paddingBottom: i < topWords.length - 1 ? 14 : 0,
+                  marginBottom:  i < topWords.length - 1 ? 14 : 0,
+                  borderBottom:  i < topWords.length - 1 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <span style={{
+                      fontFamily:'"Amiri Quran", serif', fontSize:20,
+                      color:'#EF4444', minWidth:60,
+                    }}>{w.text}</span>
+                    <span style={{ fontSize:11, color:'var(--sub)' }}>
+                      {[...w.pages].sort((a,b)=>a-b).map(p=>`ص${p}`).join('، ')}
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize:13, fontWeight:700, color:'#EF4444',
+                    background:'rgba(239,68,68,0.1)',
+                    padding:'3px 10px', borderRadius:20, flexShrink:0,
+                  }}>
+                    {w.count}×
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Memory stages */}
         <div style={sectionLabel}>مراحل الحفظ</div>
