@@ -46,18 +46,71 @@ export async function loadPageWords(pageNumber: number): Promise<QuranWord[]> {
 
 /**
  * Groups a flat word array by ayah.
- * Returns an array of { key, words } sorted by natural order.
  */
 export function groupByAyah(
   words: QuranWord[]
 ): { key: string; surah: number; ayah: number; words: QuranWord[] }[] {
   const map = new Map<string, { surah: number; ayah: number; words: QuranWord[] }>()
-
   for (const w of words) {
     const key = `${w.s}:${w.a}`
     if (!map.has(key)) map.set(key, { surah: w.s, ayah: w.a, words: [] })
     map.get(key)!.words.push(w)
   }
-
   return [...map.entries()].map(([key, v]) => ({ key, ...v }))
+}
+
+/**
+ * Groups words by line number for mushaf-accurate rendering.
+ * Each line entry knows its surah (to detect surah changes) and
+ * which ayah numbers end on that line (for ayah markers).
+ */
+export function groupByLine(words: QuranWord[]): {
+  ln:        number
+  words:     QuranWord[]
+  ayahEnds:  { ayah: number; surah: number }[]  // ayahs that END on this line
+  newSurahs: number[]                            // surahs that START on this line
+}[] {
+  const map = new Map<number, { words: QuranWord[] }>()
+
+  for (const w of words) {
+    if (!map.has(w.ln)) map.set(w.ln, { words: [] })
+    map.get(w.ln)!.words.push(w)
+  }
+
+  const lines = [...map.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([ln, { words: lw }]) => {
+      // Ayah markers: appear after last word of each ayah
+      const ayahEnds: { ayah: number; surah: number }[] = []
+      const seen = new Set<string>()
+      for (let i = 0; i < lw.length; i++) {
+        const w = lw[i]
+        const key = `${w.s}:${w.a}`
+        const nextIsDifferent = i === lw.length - 1 || lw[i + 1].a !== w.a || lw[i + 1].s !== w.s
+        if (nextIsDifferent && !seen.has(key)) {
+          // check if this ayah actually ends here (next word of same ayah is on next line or doesn't exist)
+          const allWordsOfAyah = words.filter(x => x.s === w.s && x.a === w.a)
+          const lastWordOfAyah = allWordsOfAyah[allWordsOfAyah.length - 1]
+          if (lastWordOfAyah.ln === ln) {
+            ayahEnds.push({ ayah: w.a, surah: w.s })
+            seen.add(key)
+          }
+        }
+      }
+
+      // Detect surah starts: first word of a surah on this line
+      const newSurahs: number[] = []
+      const surahsSeen = new Set<number>()
+      for (const w of lw) {
+        if (!surahsSeen.has(w.s)) {
+          surahsSeen.add(w.s)
+          const allWordsOfSurah = words.filter(x => x.s === w.s)
+          if (allWordsOfSurah[0].ln === ln) newSurahs.push(w.s)
+        }
+      }
+
+      return { ln, words: lw, ayahEnds, newSurahs }
+    })
+
+  return lines
 }

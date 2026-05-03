@@ -19,6 +19,7 @@ export interface QuranWord {
   wi: number  // word index within ayah (1-based)
   t:  string  // text_uthmani — Uthmani script with diacritics
   n:  string  // normalized — without diacritics, for comparison
+  ln: number  // line number within the page (for mushaf-accurate rendering)
 }
 
 export interface WordMistake {
