@@ -141,7 +141,7 @@ export default function QuranPage({
 
         // count real words (not markers) to decide justification
         const wordCount = line.items.filter(i => i.type === 'word').length
-        const justify   = wordCount >= 3 ? 'space-between' : 'flex-end'
+        const justify   = wordCount >= 3 ? 'space-between' : 'center'
 
         return (
           <div key={line.ln}>
