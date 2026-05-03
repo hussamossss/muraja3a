@@ -120,12 +120,12 @@ export default function QuranPage({
     <div style={{
       direction:  'rtl',
       fontFamily: '"Amiri Quran", "Amiri", serif',
-      fontSize:   26,
-      lineHeight: 3.6,
+      fontSize:   28,
+      lineHeight: 2.5,
       color:      'var(--cream)',
-      padding:    '16px 24px 28px',
-      textAlign:  'center',
-      wordSpacing: 4,
+      padding:    '20px 20px 28px',
+      textAlign:  'justify',
+      textJustify: 'inter-word' as any,
     }}>
       {ayahs.map(({ key, surah, ayah, words }) => {
         const newSurah = surah !== lastSurah
@@ -143,14 +143,12 @@ export default function QuranPage({
                   key={wKey}
                   onClick={interactive ? () => onWordToggle?.(word) : undefined}
                   style={{
-                    display:    'inline-block',
-                    padding:    '5px 4px',
-                    minWidth:   32,
-                    borderRadius: 6,
+                    display:    'inline',
+                    padding:    '2px 1px',
+                    borderRadius: 4,
                     cursor:     interactive ? 'pointer' : 'default',
-                    background: selected ? 'rgba(239,68,68,0.18)' : 'transparent',
-                    color:      selected ? '#EF4444' : 'var(--cream)',
-                    outline:    selected ? '1.5px solid rgba(239,68,68,0.4)' : 'none',
+                    background: selected ? 'rgba(239,68,68,0.2)' : 'transparent',
+                    color:      selected ? '#EF4444' : 'inherit',
                     userSelect: 'none',
                     WebkitUserSelect: 'none',
                     transition: 'background .12s, color .12s',
@@ -162,7 +160,7 @@ export default function QuranPage({
             })}
 
             <AyahMarker n={ayah} />
-            {'  '}
+            {' '}
           </span>
         )
       })}
