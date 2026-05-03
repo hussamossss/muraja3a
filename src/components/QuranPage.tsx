@@ -71,9 +71,10 @@ function SurahHeader({ surah }: { surah: number }) {
       {basmala && (
         <div style={{
           fontFamily: '"Amiri Quran", serif',
-          fontSize: 22,
+          fontSize: 26,
           color: 'var(--sub)',
-          letterSpacing: 1,
+          letterSpacing: 2,
+          marginTop: 4,
         }}>
           {BASMALA}
         </div>
@@ -117,13 +118,14 @@ export default function QuranPage({
 
   return (
     <div style={{
-      direction: 'rtl',
+      direction:  'rtl',
       fontFamily: '"Amiri Quran", "Amiri", serif',
-      fontSize: 22,
-      lineHeight: 2.8,
-      color: 'var(--cream)',
-      padding: '8px 20px 20px',
-      textAlign: 'justify',
+      fontSize:   26,
+      lineHeight: 3.6,
+      color:      'var(--cream)',
+      padding:    '16px 24px 28px',
+      textAlign:  'center',
+      wordSpacing: 4,
     }}>
       {ayahs.map(({ key, surah, ayah, words }) => {
         const newSurah = surah !== lastSurah
@@ -131,10 +133,8 @@ export default function QuranPage({
 
         return (
           <span key={key}>
-            {/* فاصل السورة عند التغيّر */}
             {newSurah && <SurahHeader surah={surah} />}
 
-            {/* كلمات الآية */}
             {words.map(word => {
               const wKey     = `${word.s}:${word.a}:${word.wi}`
               const selected = selectedKeys.has(wKey)
@@ -143,12 +143,12 @@ export default function QuranPage({
                   key={wKey}
                   onClick={interactive ? () => onWordToggle?.(word) : undefined}
                   style={{
-                    display: 'inline-block',
-                    padding: '4px 3px',
-                    minWidth: 28,
-                    borderRadius: 5,
-                    cursor: interactive ? 'pointer' : 'default',
-                    background: selected ? 'rgba(239,68,68,0.15)' : 'transparent',
+                    display:    'inline-block',
+                    padding:    '5px 4px',
+                    minWidth:   32,
+                    borderRadius: 6,
+                    cursor:     interactive ? 'pointer' : 'default',
+                    background: selected ? 'rgba(239,68,68,0.18)' : 'transparent',
                     color:      selected ? '#EF4444' : 'var(--cream)',
                     outline:    selected ? '1.5px solid rgba(239,68,68,0.4)' : 'none',
                     userSelect: 'none',
@@ -161,9 +161,8 @@ export default function QuranPage({
               )
             })}
 
-            {/* رقم الآية في دائرة */}
             <AyahMarker n={ayah} />
-            {' '}
+            {'  '}
           </span>
         )
       })}
