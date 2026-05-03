@@ -131,6 +131,8 @@ export default function QuranPage({
 
   return (
     <div style={{
+      maxWidth: 440,
+      margin: '0 auto',
       direction: 'rtl', fontFamily: '"Amiri Quran", "Amiri", serif',
       padding: '12px 16px 20px',
       userSelect: 'none', WebkitUserSelect: 'none',
