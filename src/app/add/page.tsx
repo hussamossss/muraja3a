@@ -327,7 +327,7 @@ export default function AddPage() {
 
       {/* Body */}
       <div style={{ flex:1, padding:'24px 16px 48px', overflowY:'auto' }}>
-        <div style={{ maxWidth:400, margin:'0 auto', display:'flex', flexDirection:'column', gap:20 }}>
+        <div style={{ maxWidth:480, margin:'0 auto', display:'flex', flexDirection:'column', gap:20 }}>
 
           {/* Page number */}
           <div style={card}>
