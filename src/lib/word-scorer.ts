@@ -6,6 +6,7 @@ import { todayStr } from './spaced-rep'
 export async function calcMistakeLevel(
   selectedWords: QuranWord[],
   userId: string,
+  pageNumber: number,
 ): Promise<MistakeLevel> {
   if (selectedWords.length === 0) return 'perfect'
 
@@ -14,6 +15,7 @@ export async function calcMistakeLevel(
     .from('word_mistakes')
     .select('normalized_word')
     .eq('user_id', userId)
+    .eq('page_number', pageNumber)
     .in('normalized_word', norms)
 
   const repeatMap = new Map<string, number>()
