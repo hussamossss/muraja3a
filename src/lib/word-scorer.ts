@@ -2,36 +2,16 @@ import type { QuranWord, MistakeLevel } from './types'
 import { supabase } from './supabase'
 import { todayStr } from './spaced-rep'
 
-// ── mistake_level from selected words ────────────────────────────────────────
-export async function calcMistakeLevel(
-  selectedWords: QuranWord[],
-  userId: string,
-): Promise<MistakeLevel> {
-  if (selectedWords.length === 0) return 'perfect'
-
-  const norms = [...new Set(selectedWords.map(w => w.n))]
-  const { data } = await supabase
-    .from('word_mistakes')
-    .select('normalized_word')
-    .eq('user_id', userId)
-    .in('normalized_word', norms)
-
-  const repeatMap = new Map<string, number>()
-  data?.forEach(row => {
-    repeatMap.set(row.normalized_word, (repeatMap.get(row.normalized_word) ?? 0) + 1)
-  })
-
-  let score = 0
-  for (const w of selectedWords) {
-    const repeats = repeatMap.get(w.n) ?? 0
-    score += 1 + Math.min(repeats * 0.5, 2.0)
-  }
-
-  if (score <= 0)   return 'perfect'
-  if (score <= 1.5) return 'minor'
-  if (score <= 3.0) return 'impactful'
-  if (score <= 5.0) return 'few'
-  if (score <= 8.0) return 'many'
+// ── mistake_level from selected word count (pure, no DB) ─────────────────────
+// Word history is still saved separately for future analytics — it does not
+// affect the score here, keeping the two concerns cleanly apart.
+export function calcMistakeLevel(selectedWords: QuranWord[]): MistakeLevel {
+  const n = selectedWords.length
+  if (n === 0) return 'perfect'
+  if (n === 1) return 'minor'
+  if (n === 2) return 'impactful'
+  if (n <= 4)  return 'few'
+  if (n <= 6)  return 'many'
   return 'lapse'
 }
 

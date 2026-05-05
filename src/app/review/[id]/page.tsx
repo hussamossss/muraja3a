@@ -133,9 +133,7 @@ export default function ReviewPage() {
     setSaving(true)
     setConfirmZero(false)
     try {
-      const level: MistakeLevel = selectedWords.length === 0
-        ? 'perfect'
-        : await calcMistakeLevel(selectedWords, page.user_id)
+      const level: MistakeLevel = calcMistakeLevel(selectedWords)
 
       const saved = await persistReview(level)
       if (!saved) throw new Error('save failed')
