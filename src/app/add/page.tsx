@@ -173,7 +173,7 @@ export default function AddPage() {
       if (mode === 'old' && reviewedToday && addReviewMode) {
         // حساب todayLevel: من الكلمات المحددة أو من الاختيار السريع
         const resolvedLevel: MistakeLevel = addReviewMode === 'words'
-          ? await calcMistakeLevel(addSelectedWords, user.id)
+          ? await calcMistakeLevel(addSelectedWords, user.id, pageId)
           : (todayLevel ?? 'perfect')
         const virtualPage = {
           ...createInitialState(),

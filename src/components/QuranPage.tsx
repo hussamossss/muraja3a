@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { loadPageWords, SURAH_NAMES, BASMALA, NO_BASMALA_SURAHS } from '@/lib/quran-data'
 import type { QuranWord } from '@/lib/types'
 
@@ -20,9 +20,9 @@ function AyahMarker({ n }: { n: number }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: 24, height: 24, borderRadius: '50%',
+      width: '1em', height: '1em', borderRadius: '50%',
       border: '1px solid rgba(138,143,143,0.5)',
-      fontSize: 10, color: 'var(--sub)',
+      fontSize: '0.42em', color: 'var(--sub)',
       fontFamily: '"Amiri Quran", serif',
       flexShrink: 0, userSelect: 'none', WebkitUserSelect: 'none',
     }}>
@@ -35,21 +35,100 @@ function SurahHeader({ surah }: { surah: number }) {
   const name    = SURAH_NAMES[surah] ?? `سورة ${surah}`
   const basmala = surah !== 1 && !NO_BASMALA_SURAHS.has(surah)
   return (
-    <div style={{ textAlign: 'center', margin: '14px 0 8px', direction: 'rtl' }}>
+    <div style={{ textAlign: 'center', margin: 'clamp(10px, 2vw, 16px) 0 clamp(6px, 1.5vw, 10px)', direction: 'rtl' }}>
       <div style={{
-        display: 'inline-block', padding: '5px 24px',
+        display: 'inline-block', padding: 'clamp(3px, 0.7vw, 6px) clamp(16px, 3vw, 28px)',
         border: '1.5px solid var(--border)', borderRadius: 40,
-        fontSize: 16, fontFamily: '"Amiri Quran", serif', color: 'var(--cream)',
-        marginBottom: basmala ? 8 : 0,
+        fontSize: 'clamp(14px, 4vw, 18px)', fontFamily: '"Amiri Quran", serif', color: 'var(--cream)',
+        marginBottom: basmala ? 'clamp(4px, 1vw, 8px)' : 0,
       }}>
         سورة {name}
       </div>
       {basmala && (
-        <div style={{ fontFamily: '"Amiri Quran", serif', fontSize: 24, color: 'var(--sub)', marginTop: 4 }}>
+        <div style={{ fontFamily: '"Amiri Quran", serif', fontSize: '1em', color: 'var(--sub)', marginTop: 'clamp(2px, 0.5vw, 4px)' }}>
           {BASMALA}
         </div>
       )}
     </div>
+  )
+}
+
+// ── Render items helper ──────────────────────────────────────────────────────
+function renderLineItems(items: Item[], selectedKeys: Set<string>, interactive: boolean, onWordToggle?: (word: QuranWord) => void) {
+  return items.map((item, idx) =>
+    item.type === 'marker'
+      ? <AyahMarker key={`m-${idx}`} n={item.ayah} />
+      : (
+        <span
+          key={`${item.word.s}:${item.word.a}:${item.word.wi}`}
+          onClick={interactive ? () => onWordToggle?.(item.word) : undefined}
+          style={{
+            cursor:     interactive ? 'pointer' : 'default',
+            background: selectedKeys.has(`${item.word.s}:${item.word.a}:${item.word.wi}`)
+              ? 'rgba(239,68,68,0.2)' : 'transparent',
+            color: selectedKeys.has(`${item.word.s}:${item.word.a}:${item.word.wi}`)
+              ? '#EF4444' : 'inherit',
+            borderRadius: 4,
+            padding: '2px 1px',
+            transition: 'background .12s, color .12s',
+          }}
+        >
+          {item.word.t}
+        </span>
+      )
+  )
+}
+
+// ── QuranLine: per-line auto-fit component ────────────────────────────────────
+interface QuranLineProps {
+  items: Item[]
+  justify: 'space-between' | 'center'
+  selectedKeys: Set<string>
+  interactive: boolean
+  onWordToggle?: (word: QuranWord) => void
+}
+
+function QuranLine({ items, justify, selectedKeys, interactive, onWordToggle }: QuranLineProps) {
+  const rowRef   = useRef<HTMLDivElement>(null)
+  const probeRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    const fit = () => {
+      const row = rowRef.current, probe = probeRef.current
+      if (!row || !probe) return
+      const avail   = row.clientWidth
+      const natural = probe.scrollWidth
+      if (avail === 0 || natural === 0) return
+      const ratio = (avail * 0.98) / natural
+      setScale(Math.max(0.7, Math.min(1.08, ratio)))
+    }
+    fit()
+    document.fonts?.ready?.then(fit)
+    const ro = new ResizeObserver(fit)
+    if (rowRef.current) ro.observe(rowRef.current)
+    return () => ro.disconnect()
+  }, [items])
+
+  return (
+    <>
+      <div ref={probeRef} aria-hidden style={{
+        position: 'absolute', visibility: 'hidden', whiteSpace: 'nowrap',
+        direction: 'rtl', fontSize: '1em', pointerEvents: 'none', left: -9999,
+      }}>
+        {renderLineItems(items, selectedKeys, interactive, onWordToggle)}
+      </div>
+
+      <div ref={rowRef} style={{
+        display: 'flex', flexDirection: 'row', justifyContent: justify,
+        alignItems: 'center', direction: 'rtl', width: '100%',
+        fontSize: scale !== null ? `${scale}em` : '1em',
+        visibility: scale === null ? 'hidden' : 'visible',
+        lineHeight: 2.2,
+      }}>
+        {renderLineItems(items, selectedKeys, interactive, onWordToggle)}
+      </div>
+    </>
   )
 }
 
@@ -131,57 +210,31 @@ export default function QuranPage({
 
   return (
     <div style={{
-      maxWidth: 440,
+      width: '100%',
+      maxWidth: 'min(560px, 100vw)',
       margin: '0 auto',
       direction: 'rtl', fontFamily: '"Amiri Quran", "Amiri", serif',
-      padding: '12px 16px 20px',
+      padding: 'clamp(10px, 3vw, 18px) clamp(12px, 4vw, 22px)',
+      fontSize: 'clamp(20px, 5.6vw, 30px)',
       userSelect: 'none', WebkitUserSelect: 'none',
     }}>
       {lines.map(line => {
         const headers = line.newSurahs.filter(s => !shownSurahs.has(s))
         headers.forEach(s => shownSurahs.add(s))
 
-        // count real words (not markers) to decide justification
         const wordCount = line.items.filter(i => i.type === 'word').length
-        const justify   = wordCount >= 3 ? 'space-between' : 'center'
+        const justify = wordCount >= 3 ? 'space-between' : 'center'
 
         return (
           <div key={line.ln}>
             {headers.map(s => <SurahHeader key={s} surah={s} />)}
-
-            <div style={{
-              display: 'flex', flexDirection: 'row',
-              justifyContent: justify,
-              alignItems: 'center',
-              direction: 'rtl',
-              fontSize: 24,
-              lineHeight: 2.4,
-              width: '100%',
-              gap: wordCount < 3 ? 6 : 0,
-            }}>
-              {line.items.map((item, idx) =>
-                item.type === 'marker'
-                  ? <AyahMarker key={`m-${idx}`} n={item.ayah} />
-                  : (
-                    <span
-                      key={`${item.word.s}:${item.word.a}:${item.word.wi}`}
-                      onClick={interactive ? () => onWordToggle?.(item.word) : undefined}
-                      style={{
-                        cursor:     interactive ? 'pointer' : 'default',
-                        background: selectedKeys.has(`${item.word.s}:${item.word.a}:${item.word.wi}`)
-                          ? 'rgba(239,68,68,0.2)' : 'transparent',
-                        color: selectedKeys.has(`${item.word.s}:${item.word.a}:${item.word.wi}`)
-                          ? '#EF4444' : 'inherit',
-                        borderRadius: 4,
-                        padding: '2px 1px',
-                        transition: 'background .12s, color .12s',
-                      }}
-                    >
-                      {item.word.t}
-                    </span>
-                  )
-              )}
-            </div>
+            <QuranLine
+              items={line.items}
+              justify={justify}
+              selectedKeys={selectedKeys}
+              interactive={interactive}
+              onWordToggle={onWordToggle}
+            />
           </div>
         )
       })}
