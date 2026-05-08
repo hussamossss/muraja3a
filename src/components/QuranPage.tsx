@@ -211,6 +211,7 @@ export default function QuranPage({
     <div
       ref={containerRef}
       style={{
+        position: 'relative',
         width: '100%',
         maxWidth: 'min(560px, 100vw)',
         margin: '0 auto',
