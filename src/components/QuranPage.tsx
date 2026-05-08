@@ -20,9 +20,9 @@ function AyahMarker({ n }: { n: number }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: '1em', height: '1em', borderRadius: '50%',
+      width: '1.1em', height: '1.1em', borderRadius: '50%',
       border: '1px solid rgba(138,143,143,0.5)',
-      fontSize: '0.42em', color: 'var(--sub)',
+      fontSize: '0.55em', color: 'var(--sub)',
       fontFamily: '"Amiri Quran", serif',
       flexShrink: 0, userSelect: 'none', WebkitUserSelect: 'none',
     }}>
@@ -79,7 +79,7 @@ function renderLineItems(items: Item[], selectedKeys: Set<string>, interactive: 
   )
 }
 
-// ── QuranLine: per-line auto-fit component ────────────────────────────────────
+// ── QuranLine: simple row — no per-line scaling (page-level scale handles it) ──
 interface QuranLineProps {
   items: Item[]
   justify: 'space-between' | 'center'
@@ -89,46 +89,15 @@ interface QuranLineProps {
 }
 
 function QuranLine({ items, justify, selectedKeys, interactive, onWordToggle }: QuranLineProps) {
-  const rowRef   = useRef<HTMLDivElement>(null)
-  const probeRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState<number | null>(null)
-
-  useLayoutEffect(() => {
-    const fit = () => {
-      const row = rowRef.current, probe = probeRef.current
-      if (!row || !probe) return
-      const avail   = row.clientWidth
-      const natural = probe.scrollWidth
-      if (avail === 0 || natural === 0) return
-      const ratio = (avail * 0.98) / natural
-      setScale(Math.max(0.7, Math.min(1.08, ratio)))
-    }
-    fit()
-    document.fonts?.ready?.then(fit)
-    const ro = new ResizeObserver(fit)
-    if (rowRef.current) ro.observe(rowRef.current)
-    return () => ro.disconnect()
-  }, [items])
-
   return (
-    <>
-      <div ref={probeRef} aria-hidden style={{
-        position: 'absolute', visibility: 'hidden', whiteSpace: 'nowrap',
-        direction: 'rtl', fontSize: '1em', pointerEvents: 'none', left: -9999,
-      }}>
-        {renderLineItems(items, selectedKeys, interactive, onWordToggle)}
-      </div>
-
-      <div ref={rowRef} style={{
-        display: 'flex', flexDirection: 'row', justifyContent: justify,
-        alignItems: 'center', direction: 'rtl', width: '100%',
-        fontSize: scale !== null ? `${scale}em` : '1em',
-        visibility: scale === null ? 'hidden' : 'visible',
-        lineHeight: 2.2,
-      }}>
-        {renderLineItems(items, selectedKeys, interactive, onWordToggle)}
-      </div>
-    </>
+    <div style={{
+      display: 'flex', flexDirection: 'row',
+      justifyContent: justify, alignItems: 'center',
+      direction: 'rtl', width: '100%',
+      lineHeight: 2.2,
+    }}>
+      {renderLineItems(items, selectedKeys, interactive, onWordToggle)}
+    </div>
   )
 }
 
@@ -181,6 +150,8 @@ function buildLines(allWords: QuranWord[]): { ln: number; items: Item[]; newSura
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
+const BASE_FONT = 'clamp(20px, 5.6vw, 30px)'
+
 export default function QuranPage({
   pageNumber,
   interactive  = false,
@@ -191,13 +162,41 @@ export default function QuranPage({
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const probesRef    = useRef<HTMLDivElement>(null)
+  const [pageScale, setPageScale] = useState<number | null>(null)
+
   useEffect(() => {
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setPageScale(null)
     loadPageWords(pageNumber)
       .then(words => setLines(buildLines(words)))
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
   }, [pageNumber])
+
+  useLayoutEffect(() => {
+    if (lines.length === 0) return
+    const fit = () => {
+      const container = containerRef.current
+      const probes    = probesRef.current
+      if (!container || !probes) return
+      const cs    = getComputedStyle(container)
+      const avail = container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      if (avail <= 0) return
+      const lineProbes = probes.querySelectorAll<HTMLDivElement>('[data-probe]')
+      let minRatio = 1  // never upscale — max is 1.0
+      lineProbes.forEach(p => {
+        const natural = p.scrollWidth
+        if (natural > 0) minRatio = Math.min(minRatio, (avail * 0.99) / natural)
+      })
+      setPageScale(Math.max(0.7, Math.min(1, minRatio)))
+    }
+    fit()
+    document.fonts?.ready?.then(fit)
+    const ro = new ResizeObserver(fit)
+    if (containerRef.current) ro.observe(containerRef.current)
+    return () => ro.disconnect()
+  }, [lines])
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: 40, color: 'var(--sub)' }}>جارٍ تحميل الصفحة...</div>
@@ -209,15 +208,31 @@ export default function QuranPage({
   const shownSurahs = new Set<number>()
 
   return (
-    <div style={{
-      width: '100%',
-      maxWidth: 'min(560px, 100vw)',
-      margin: '0 auto',
-      direction: 'rtl', fontFamily: '"Amiri Quran", "Amiri", serif',
-      padding: 'clamp(10px, 3vw, 18px) clamp(12px, 4vw, 22px)',
-      fontSize: 'clamp(20px, 5.6vw, 30px)',
-      userSelect: 'none', WebkitUserSelect: 'none',
-    }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        maxWidth: 'min(560px, 100vw)',
+        margin: '0 auto',
+        direction: 'rtl', fontFamily: '"Amiri Quran", "Amiri", serif',
+        padding: 'clamp(10px, 3vw, 18px) clamp(12px, 4vw, 22px)',
+        fontSize: pageScale !== null ? `calc(${BASE_FONT} * ${pageScale})` : BASE_FONT,
+        visibility: pageScale === null ? 'hidden' : 'visible',
+        userSelect: 'none', WebkitUserSelect: 'none',
+      }}
+    >
+      {/* Hidden probes — measure at base font size, outside the scaled context */}
+      <div ref={probesRef} aria-hidden style={{
+        position: 'absolute', visibility: 'hidden', pointerEvents: 'none',
+        left: -9999, top: 0, fontSize: BASE_FONT, direction: 'rtl',
+      }}>
+        {lines.map(line => (
+          <div key={line.ln} data-probe style={{ whiteSpace: 'nowrap' }}>
+            {renderLineItems(line.items, selectedKeys, interactive, onWordToggle)}
+          </div>
+        ))}
+      </div>
+
       {lines.map(line => {
         const headers = line.newSurahs.filter(s => !shownSurahs.has(s))
         headers.forEach(s => shownSurahs.add(s))
