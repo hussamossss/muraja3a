@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useT } from '@/lib/i18n'
 
 const GREEN = '#22C55E'
 const GRAY  = '#8A8F8F'
@@ -43,17 +44,18 @@ function FlaskIcon({ color }: { color: string }) {
   )
 }
 
-const TABS = [
-  { label: 'الرئيسية', route: '/dashboard', Icon: HouseIcon    },
-  { label: 'التقدم',   route: '/stats',     Icon: ChartIcon    },
-  { label: 'التقويم',  route: '/calendar',  Icon: CalendarIcon },
-  { label: 'اختبار',   route: '/test',      Icon: FlaskIcon    },
-]
-
 export default function BottomNav() {
   const pathname = usePathname()
   const router   = useRouter()
+  const t        = useT()
   const [pressed, setPressed] = useState<string | null>(null)
+
+  const TABS = [
+    { label: t.nav.home,     route: '/dashboard', Icon: HouseIcon    },
+    { label: t.nav.progress, route: '/stats',     Icon: ChartIcon    },
+    { label: t.nav.calendar, route: '/calendar',  Icon: CalendarIcon },
+    { label: t.nav.quiz,     route: '/test',      Icon: FlaskIcon    },
+  ]
 
   return (
     <nav style={{

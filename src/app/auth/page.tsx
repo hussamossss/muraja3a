@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n'
 
 export default function AuthPage() {
   const router = useRouter()
+  const t = useT()
   const [isSignup, setIsSignup] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,7 +15,7 @@ export default function AuthPage() {
   const [error, setError] = useState('')
 
   async function handleSubmit() {
-    if (!email || !password) { setError('أدخل البريد وكلمة المرور'); return }
+    if (!email || !password) { setError(t.auth.emptyFields); return }
     setLoading(true); setError('')
     try {
       const { error } = isSignup
@@ -23,7 +25,7 @@ export default function AuthPage() {
       if (error) throw error
       router.push('/dashboard')
     } catch (e: any) {
-      setError(e.message.includes('Invalid') ? 'بريد أو كلمة مرور خاطئة' : e.message)
+      setError(e.message.includes('Invalid') ? t.auth.wrongCredentials : e.message)
     } finally {
       setLoading(false)
     }
@@ -39,8 +41,8 @@ export default function AuthPage() {
         textAlign: 'center',
       }}>
         <div style={{ fontSize: 48, marginBottom: 8 }}>📖</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--cream)' }}>مجدول مراجعة الحفظ</div>
-        <div style={{ fontSize: 13, color: 'var(--sub)', marginTop: 6 }}>سجّل دخولك للوصول من أي جهاز</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--cream)' }}>{t.auth.appTitle}</div>
+        <div style={{ fontSize: 13, color: 'var(--sub)', marginTop: 6 }}>{t.auth.tagline}</div>
       </div>
 
       {/* Form */}
@@ -51,14 +53,14 @@ export default function AuthPage() {
           display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--cream)', textAlign: 'center' }}>
-            {isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}
+            {isSignup ? t.auth.createAccount : t.auth.signIn}
           </div>
 
           <form onSubmit={e => { e.preventDefault(); handleSubmit() }}
             style={{ display:'flex', flexDirection:'column', gap:14 }}>
             <input
               type="email"
-              placeholder="البريد الإلكتروني"
+              placeholder={t.auth.email}
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
@@ -66,7 +68,7 @@ export default function AuthPage() {
             />
             <input
               type="password"
-              placeholder="كلمة المرور"
+              placeholder={t.auth.password}
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete={isSignup ? 'new-password' : 'current-password'}
@@ -78,20 +80,20 @@ export default function AuthPage() {
             )}
 
             <button type="submit" disabled={loading} style={primaryBtn}>
-              {loading ? 'جارٍ...' : isSignup ? 'إنشاء حساب' : 'دخول'}
+              {loading ? t.auth.loading : isSignup ? t.auth.creating : t.auth.entering}
             </button>
           </form>
 
           <div style={{ textAlign: 'center' }}>
             <button onClick={() => { setIsSignup(!isSignup); setError('') }} style={linkBtn}>
-              {isSignup ? 'لديك حساب؟ سجّل دخولك' : 'ليس لديك حساب؟ سجّل الآن'}
+              {isSignup ? t.auth.haveAccount : t.auth.noAccount}
             </button>
           </div>
 
           <div style={{ height: 1, background: 'var(--border)' }} />
 
           <button onClick={() => router.push('/reset-password')} style={linkBtn}>
-            نسيت كلمة المرور؟
+            {t.auth.forgotPassword}
           </button>
         </div>
       </div>

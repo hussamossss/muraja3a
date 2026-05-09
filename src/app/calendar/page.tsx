@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Page } from '@/lib/types'
-import { todayStr, daysDiff, formatDate } from '@/lib/spaced-rep'
+import { todayStr, daysDiff } from '@/lib/spaced-rep'
+import { useT, useLang } from '@/lib/i18n'
 import BottomNav from '@/components/BottomNav'
 
 const C = {
@@ -19,42 +20,43 @@ const C = {
   accent: '#38BDF8',
 }
 
-function dateLabel(dateStr: string): string {
-  const d    = daysDiff(dateStr)
-  const date = new Date(dateStr + 'T00:00:00')
-  const day  = date.toLocaleDateString('ar-EG', { weekday: 'long' })
-  const md   = date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })
-  if (d === 1) return `غداً - ${day} ${md}`
-  if (d === 2) return `بعد يومين - ${day} ${md}`
-  if (d <= 7)  return `${day} ${md} - بعد ${d} أيام`
-  return `${day} ${md}`
-}
-
-const MISTAKE_LABEL: Record<string, string> = {
-  perfect:'لا أخطاء', minor:'خطأ بسيط', impactful:'خطأ مؤثر',
-  few:'2-3 أخطاء', many:'4-6 أخطاء', lapse:'نسيت',
-  strong:'قوي', medium:'متوسط', weak:'ضعيف',
-}
 const MISTAKE_COLOR: Record<string, string> = {
   perfect:'#22C55E', minor:'#84CC16', impactful:'#F97316',
   few:'#FB923C', many:'#EF4444', lapse:'#7C3AED',
   strong: C.green, medium: C.orange, weak: C.red,
 }
 
-function strengthInfo(page: Page): { label: string; color: string } | null {
-  const key = page.last_mistake_level ?? page.last_strength
-  if (!key) return null
-  return { label: MISTAKE_LABEL[key] ?? key, color: MISTAKE_COLOR[key] ?? C.sub }
-}
-
 export default function CalendarPage() {
   const router = useRouter()
+  const t = useT()
+  const { lang } = useLang()
   const [pages, setPages]       = useState<Page[]>([])
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [swipedId, setSwipedId] = useState<string | null>(null)
 
   useEffect(() => { loadPages() }, [])
+
+  function dateLabel(dateStr: string): string {
+    const d    = daysDiff(dateStr)
+    const date = new Date(dateStr + 'T00:00:00')
+    const locale = t.dates.locale
+    const day  = date.toLocaleDateString(locale, { weekday: 'long' })
+    const md   = date.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
+    if (d === 1) return `${t.dates.tomorrow} - ${day} ${md}`
+    if (d === 2) return `${t.dates.inTwoDays} - ${day} ${md}`
+    if (d <= 7)  return `${day} ${md} - ${t.dates.inDays(d)}`
+    return `${day} ${md}`
+  }
+
+  function getStrengthInfo(page: Page): { label: string; color: string } | null {
+    const key = page.last_mistake_level ?? page.last_strength
+    if (!key) return null
+    const ml = (t.mistakeLevels as Record<string, { label: string }>)[key]
+    const label = ml?.label ?? key
+    const color = MISTAKE_COLOR[key] ?? C.sub
+    return { label, color }
+  }
 
   async function loadPages() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -94,6 +96,8 @@ export default function CalendarPage() {
     })
   }
 
+  const pageLabel = (n: number) => lang === 'ar' ? `صفحة ${n}` : `Page ${n}`
+
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background: C.bg }}>
       <div style={{ width:44, height:44, borderRadius:'50%', border:`3px solid ${C.border}`, borderTopColor: C.green, animation:'spin .8s linear infinite' }}/>
@@ -107,10 +111,10 @@ export default function CalendarPage() {
       {/* Header */}
       <div style={{ background: C.bg, padding:'48px 16px 16px', borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
-        <span style={{ fontSize:18, fontWeight:700, color: C.title }}>جلساتك القادمة</span>
+        <span style={{ fontSize:18, fontWeight:700, color: C.title }}>{t.calendar.title}</span>
         {pages.length > 0 && (
-          <span style={{ marginRight:'auto', fontSize:12, color: C.accent, background:`${C.accent}15`, padding:'4px 10px', borderRadius:20, fontWeight:600 }}>
-            {pages.length} صفحة
+          <span style={{ marginInlineStart:'auto', fontSize:12, color: C.accent, background:`${C.accent}15`, padding:'4px 10px', borderRadius:20, fontWeight:600 }}>
+            {t.calendar.pageCount(pages.length)}
           </span>
         )}
       </div>
@@ -120,15 +124,14 @@ export default function CalendarPage() {
         {groups.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 24px' }}>
             <div style={{ fontSize:52, marginBottom:16 }}>📿</div>
-            <div style={{ fontSize:18, fontWeight:700, color: C.title, marginBottom:8 }}>لا توجد جلسات قادمة</div>
-            <div style={{ fontSize:13, color: C.sub }}>أضف صفحات جديدة لتظهر هنا</div>
+            <div style={{ fontSize:18, fontWeight:700, color: C.title, marginBottom:8 }}>{t.calendar.noSessions}</div>
+            <div style={{ fontSize:13, color: C.sub }}>{t.calendar.noSessionsHint}</div>
           </div>
         ) : (
           groups.map(([date, groupPages]) => {
             const open = expanded.has(date)
             return (
               <div key={date}>
-                {/* Group header */}
                 <div style={{
                   display:'flex', alignItems:'center', justifyContent:'space-between',
                   padding:'14px 16px',
@@ -142,7 +145,7 @@ export default function CalendarPage() {
                       {dateLabel(date)}
                     </div>
                     <div style={{ fontSize:11, color: C.sub, marginTop:2 }}>
-                      {groupPages.length} صفحة
+                      {t.calendar.pageCount(groupPages.length)}
                     </div>
                   </div>
                   <button
@@ -153,15 +156,18 @@ export default function CalendarPage() {
                       padding:'6px 14px', borderRadius:20, cursor:'pointer',
                       fontFamily:'Amiri, serif', flexShrink:0,
                     }}>
-                    {open ? 'إخفاء الصفحات' : 'عرض الصفحات'}
+                    {open ? t.calendar.hidePages : t.calendar.showPages}
                   </button>
                 </div>
 
-                {/* Pages */}
                 {open && groupPages.map(p => (
                   <PageRow
                     key={p.id}
                     page={p}
+                    pageLabel={pageLabel(p.page_number)}
+                    deleteLabel={t.calendar.deleteLabel}
+                    newBadge={t.calendar.newBadge}
+                    strengthInfo={getStrengthInfo(p)}
                     swiped={swipedId === p.id}
                     onSwipe={() => setSwipedId(p.id)}
                     onCancel={() => setSwipedId(null)}
@@ -182,8 +188,12 @@ export default function CalendarPage() {
 // ── PageRow with swipe-to-delete ──────────────────────────────────
 const DELETE_W = 76
 
-function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
+function PageRow({ page, pageLabel, deleteLabel, newBadge, strengthInfo, swiped, onSwipe, onCancel, onDelete, onOpen }: {
   page: Page
+  pageLabel: string
+  deleteLabel: string
+  newBadge: string
+  strengthInfo: { label: string; color: string } | null
   swiped: boolean
   onSwipe: () => void
   onCancel: () => void
@@ -191,12 +201,11 @@ function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
   onOpen: () => void
 }) {
   const startX = useRef<number | null>(null)
-  const badge  = strengthInfo(page)
 
   return (
     <div style={{ position:'relative', overflow:'hidden', borderBottom:`1px solid ${C.border}` }}>
 
-      {/* Delete zone — revealed on the right when content slides left */}
+      {/* Delete zone */}
       <div style={{
         position:'absolute', right:0, top:0, bottom:0, width: DELETE_W,
         background: C.red,
@@ -205,7 +214,7 @@ function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
         <button
           onClick={e => { e.stopPropagation(); onDelete() }}
           style={{ background:'none', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'Amiri, serif' }}>
-          🗑 حذف
+          {deleteLabel}
         </button>
       </div>
 
@@ -229,16 +238,16 @@ function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
           cursor:'pointer',
         }}>
         <span style={{ fontSize:16, fontWeight:600, color: C.title }}>
-          صفحة {page.page_number}
+          {pageLabel}
         </span>
-        {badge ? (
+        {strengthInfo ? (
           <span style={{
-            fontSize:11, fontWeight:700, color: badge.color,
-            background:`${badge.color}1A`,
+            fontSize:11, fontWeight:700, color: strengthInfo.color,
+            background:`${strengthInfo.color}1A`,
             padding:'4px 12px', borderRadius:20,
-          }}>{badge.label}</span>
+          }}>{strengthInfo.label}</span>
         ) : (
-          <span style={{ fontSize:11, color: C.sub }}>جديدة</span>
+          <span style={{ fontSize:11, color: C.sub }}>{newBadge}</span>
         )}
       </div>
     </div>

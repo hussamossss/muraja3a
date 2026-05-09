@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
-import { loadPageWords, SURAH_NAMES, BASMALA, NO_BASMALA_SURAHS } from '@/lib/quran-data'
+import { loadPageWords, SURAH_NAMES, SURAH_NAMES_EN, BASMALA, NO_BASMALA_SURAHS } from '@/lib/quran-data'
+import { useLang, useT } from '@/lib/i18n'
 import type { QuranWord } from '@/lib/types'
 
 interface QuranPageProps {
@@ -12,7 +13,7 @@ interface QuranPageProps {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function toArabic(n: number): string {
+function toArabicNumerals(n: number): string {
   return n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d])
 }
 
@@ -26,13 +27,17 @@ function AyahMarker({ n }: { n: number }) {
       fontFamily: '"Amiri Quran", serif',
       flexShrink: 0, userSelect: 'none', WebkitUserSelect: 'none',
     }}>
-      {toArabic(n)}
+      {toArabicNumerals(n)}
     </span>
   )
 }
 
 function SurahHeader({ surah }: { surah: number }) {
-  const name    = SURAH_NAMES[surah] ?? `سورة ${surah}`
+  const { lang } = useLang()
+  const name = lang === 'en'
+    ? (SURAH_NAMES_EN[surah] ?? `Surah ${surah}`)
+    : (SURAH_NAMES[surah]   ?? `سورة ${surah}`)
+  const prefix = lang === 'en' ? 'Surah ' : 'سورة '
   const basmala = surah !== 1 && !NO_BASMALA_SURAHS.has(surah)
   return (
     <div style={{ textAlign: 'center', margin: 'clamp(10px, 2vw, 16px) 0 clamp(6px, 1.5vw, 10px)', direction: 'rtl' }}>
@@ -42,7 +47,7 @@ function SurahHeader({ surah }: { surah: number }) {
         fontSize: 'clamp(14px, 4vw, 18px)', fontFamily: '"Amiri Quran", serif', color: 'var(--cream)',
         marginBottom: basmala ? 'clamp(4px, 1vw, 8px)' : 0,
       }}>
-        سورة {name}
+        {lang === 'en' ? `${prefix}${name}` : `${prefix}${name}`}
       </div>
       {basmala && (
         <div style={{ fontFamily: '"Amiri Quran", serif', fontSize: '1em', color: 'var(--sub)', marginTop: 'clamp(2px, 0.5vw, 4px)' }}>
@@ -158,6 +163,7 @@ export default function QuranPage({
   selectedKeys = new Set(),
   onWordToggle,
 }: QuranPageProps) {
+  const t = useT()
   const [lines,   setLines]   = useState<ReturnType<typeof buildLines>>([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
@@ -199,7 +205,7 @@ export default function QuranPage({
   }, [lines])
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: 40, color: 'var(--sub)' }}>جارٍ تحميل الصفحة...</div>
+    <div style={{ textAlign: 'center', padding: 40, color: 'var(--sub)' }}>{t.quran.loading}</div>
   )
   if (error) return (
     <div style={{ textAlign: 'center', padding: 40, color: 'var(--red)', fontSize: 13 }}>{error}</div>

@@ -26,8 +26,8 @@ body {
   background: var(--bg);
   color: var(--cream);
   font-family: 'Amiri', 'Cairo', Georgia, serif;
-  direction: rtl;
   min-height: 100vh;
+  /* direction is controlled by <html dir="..."> set by LanguageProvider */
 }
 
 input[type="number"]::-webkit-inner-spin-button,

@@ -8,39 +8,39 @@ import { scheduleReview, MISTAKE_TO_STRENGTH, createInitialState } from '@/lib/q
 import { loadPageWords } from '@/lib/quran-data'
 import { calcMistakeLevel, saveWordMistakes } from '@/lib/word-scorer'
 import { uid } from '@/lib/utils'
+import { useT } from '@/lib/i18n'
 import type { ReviewStage, InitialMemoryState, MistakeLevel, QuranWord } from '@/lib/types'
 import QuranPage from '@/components/QuranPage'
 
 // ── Presets ───────────────────────────────────────────────────────────────────
 type Preset = {
   stage: ReviewStage; stability: number; difficulty: number
-  warmUp: number; baseInterval: number; label: string; desc: string; color: string
+  warmUp: number; baseInterval: number; color: string
 }
 
-const PRESETS: Record<InitialMemoryState, Preset> = {
-  new:          { stage:'learning', stability:1,  difficulty:0.3,  warmUp:0, baseInterval:1,  label:'جديدة',          desc:'لم أحفظها من قبل',              color:'#22C55E' },
-  strong_old:   { stage:'mature',   stability:35, difficulty:0.25, warmUp:5, baseInterval:21, label:'ثابتة جداً',      desc:'أحفظها بطلاقة منذ فترة',         color:'#22C55E' },
-  good_old:     { stage:'review',   stability:21, difficulty:0.4,  warmUp:5, baseInterval:14, label:'جيدة',            desc:'أتذكرها جيداً مع مراجعة دورية', color:'#38BDF8' },
-  hesitant_old: { stage:'fragile',  stability:7,  difficulty:0.55, warmUp:5, baseInterval:3,  label:'مترددة',          desc:'أتذكرها أحياناً وأخطئ أحياناً', color:'#F97316' },
-  weak_old:     { stage:'learning', stability:1,  difficulty:0.75, warmUp:0, baseInterval:1,  label:'ضعيفة أو منسية', desc:'أكاد لا أتذكرها',               color:'#EF4444' },
+const PRESETS_BASE: Record<InitialMemoryState, Omit<Preset, never>> = {
+  new:          { stage:'learning', stability:1,  difficulty:0.3,  warmUp:0, baseInterval:1,  color:'#22C55E' },
+  strong_old:   { stage:'mature',   stability:35, difficulty:0.25, warmUp:5, baseInterval:21, color:'#22C55E' },
+  good_old:     { stage:'review',   stability:21, difficulty:0.4,  warmUp:5, baseInterval:14, color:'#38BDF8' },
+  hesitant_old: { stage:'fragile',  stability:7,  difficulty:0.55, warmUp:5, baseInterval:3,  color:'#F97316' },
+  weak_old:     { stage:'learning', stability:1,  difficulty:0.75, warmUp:0, baseInterval:1,  color:'#EF4444' },
 }
 
 const OLD_OPTIONS: InitialMemoryState[] = ['strong_old', 'good_old', 'hesitant_old', 'weak_old']
 
-// preset محافظ عند reviewedToday=true — لا يحتاج المستخدم اختياره
 const REVIEWED_TODAY_PRESET: Preset = {
-  stage:'review', stability:14, difficulty:0.4, warmUp:5, baseInterval:7,
-  label:'', desc:'', color:'',
+  stage:'review', stability:14, difficulty:0.4, warmUp:5, baseInterval:7, color:'',
 }
 
-const REVIEW_OPTIONS: { key: MistakeLevel; label: string; emoji: string; color: string }[] = [
-  { key:'perfect',   label:'لا أخطاء',    emoji:'🌟', color:'#22C55E' },
-  { key:'minor',     label:'خطأ بسيط',    emoji:'✅', color:'#84CC16' },
-  { key:'impactful', label:'خطأ مؤثر',    emoji:'⚠️', color:'#F97316' },
-  { key:'few',       label:'2-3 أخطاء',   emoji:'🔸', color:'#FB923C' },
-  { key:'many',      label:'4-6 أخطاء',   emoji:'❌', color:'#EF4444' },
-  { key:'lapse',     label:'نسيت تقريبًا',emoji:'🔄', color:'#7C3AED' },
-]
+const REVIEW_OPTION_KEYS: MistakeLevel[] = ['perfect', 'minor', 'impactful', 'few', 'many', 'lapse']
+const REVIEW_OPTION_META: Record<MistakeLevel, { emoji: string; color: string }> = {
+  perfect:   { emoji:'🌟', color:'#22C55E' },
+  minor:     { emoji:'✅', color:'#84CC16' },
+  impactful: { emoji:'⚠️', color:'#F97316' },
+  few:       { emoji:'🔸', color:'#FB923C' },
+  many:      { emoji:'❌', color:'#EF4444' },
+  lapse:     { emoji:'🔄', color:'#7C3AED' },
+}
 
 // ── Next date (no-review path) ────────────────────────────────────────────────
 function calcNextDate(
@@ -50,9 +50,7 @@ function calcNextDate(
   state: InitialMemoryState,
 ): string {
   if (!lastReviewedAt) return addDays(today, baseInterval)
-
   const targetDate = addDays(lastReviewedAt, baseInterval)
-
   if (targetDate < today) {
     if (state === 'strong_old' || state === 'good_old') return addDays(today, 1)
     return today
@@ -84,6 +82,7 @@ function calcFinalCap(state: InitialMemoryState, memorizedAt: string, today: str
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function AddPage() {
   const router = useRouter()
+  const t = useT()
   const [value, setValue]           = useState('')
   const [mode, setMode]             = useState<'new' | 'old'>('new')
   const [memState, setMemState]     = useState<InitialMemoryState>('strong_old')
@@ -93,7 +92,6 @@ export default function AddPage() {
   const [memorizedAt,      setMemorizedAt]      = useState('')
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
-  // mode selector inside reviewedToday
   const [addReviewMode,    setAddReviewMode]    = useState<'quick' | 'words' | null>(null)
   const [addSelectedKeys,  setAddSelectedKeys]  = useState<Set<string>>(new Set())
   const [addSelectedWords, setAddSelectedWords] = useState<QuranWord[]>([])
@@ -102,7 +100,6 @@ export default function AddPage() {
   const pageNum = parseInt(value)
   const validPage = !isNaN(pageNum) && pageNum >= 1 && pageNum <= 604
 
-  // load words when switching to words mode
   useEffect(() => {
     if (addReviewMode === 'words' && validPage) {
       loadPageWords(pageNum).then(setAddAllWords).catch(console.error)
@@ -127,12 +124,12 @@ export default function AddPage() {
     || (reviewedToday && addReviewMode === 'quick' && !todayLevel)
 
   const saveLabel = loading
-    ? 'جارٍ الحفظ...'
+    ? t.add.saving
     : (reviewedToday && !addReviewMode)
-      ? 'اختر طريقة تسجيل المراجعة'
+      ? t.add.chooseMode
       : (reviewedToday && addReviewMode === 'quick' && !todayLevel)
-        ? 'اختر نتيجة المراجعة أولاً'
-        : 'حفظ الصفحة'
+        ? t.add.chooseRating
+        : t.add.savePage
 
   function handleModeChange(m: 'new' | 'old') {
     setMode(m)
@@ -148,7 +145,7 @@ export default function AddPage() {
   async function handleAdd() {
     const num = parseInt(value)
     if (!value || isNaN(num) || num < 1 || num > 604) {
-      setError('أدخل رقمًا صحيحًا من 1 إلى 604'); return
+      setError(t.add.invalidPage); return
     }
     if (reviewedToday && !addReviewMode) return
     if (reviewedToday && addReviewMode === 'quick' && !todayLevel) return
@@ -161,17 +158,15 @@ export default function AddPage() {
       const { data: existing } = await supabase
         .from('pages').select('id')
         .eq('user_id', user.id).eq('page_number', num).maybeSingle()
-      if (existing) { setError('الصفحة موجودة مسبقًا!'); setLoading(false); return }
+      if (existing) { setError(t.add.alreadyExists); setLoading(false); return }
 
       const today        = todayStr()
       const activeState: InitialMemoryState =
         mode === 'new' ? 'new' : (reviewedToday ? 'good_old' : memState)
-      const preset       = (mode === 'old' && reviewedToday) ? REVIEWED_TODAY_PRESET : PRESETS[activeState]
+      const preset       = (mode === 'old' && reviewedToday) ? REVIEWED_TODAY_PRESET : PRESETS_BASE[activeState]
       const pageId       = uid()
 
-      // ── مسار المراجعة الأولى ──────────────────────────────────────────────
       if (mode === 'old' && reviewedToday && addReviewMode) {
-        // حساب todayLevel: من الكلمات المحددة أو من الاختيار السريع
         const resolvedLevel: MistakeLevel = addReviewMode === 'words'
           ? await calcMistakeLevel(addSelectedWords, user.id, pageId)
           : (todayLevel ?? 'perfect')
@@ -182,7 +177,7 @@ export default function AddPage() {
           page_number: num,
           created_at: today,
           next_review_date: today,
-          last_reviewed_at: lastDate || null,  // تاريخ المراجعة السابقة لحساب elapsed_days
+          last_reviewed_at: lastDate || null,
           current_interval_days: preset.baseInterval,
           last_strength: null as null,
           review_count: 0,
@@ -249,7 +244,6 @@ export default function AddPage() {
           return
         }
 
-        // حفظ word_mistakes إذا كان mode=words وفيه كلمات محددة
         if (addReviewMode === 'words' && addSelectedWords.length > 0) {
           const { error: we } = await saveWordMistakes({
             userId:        user.id,
@@ -266,19 +260,16 @@ export default function AddPage() {
         return
       }
 
-      // ── المسار العادي (بدون مراجعة أولى) ────────────────────────────────────
       const lastReviewedAt = (mode === 'old' && lastDate) ? lastDate : null
       const rawNextDate    = calcNextDate(preset.baseInterval, lastDate, today, activeState)
       const finalCap       = mode === 'old' ? calcFinalCap(activeState, memorizedAt, today) : Infinity
 
-      // طبّق الـ cap على عدد الأيام من اليوم، ثم استخدم التاريخ الناتج مباشرة
       const daysFromToday  = Math.max(0, Math.round(
         (new Date(rawNextDate).getTime() - new Date(today).getTime()) / 86400000
       ))
       const cappedDays     = Math.min(daysFromToday, finalCap)
       const finalNextDate  = addDays(today, cappedDays)
 
-      // current_interval_days = أيام من آخر مراجعة إلى الموعد القادم (وليس من اليوم)
       const finalInterval  = lastReviewedAt
         ? Math.max(1, Math.round(
             (new Date(finalNextDate).getTime() - new Date(lastReviewedAt).getTime()) / 86400000
@@ -310,7 +301,7 @@ export default function AddPage() {
       router.push('/dashboard?added=1')
 
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'حدث خطأ')
+      setError(e instanceof Error ? e.message : 'Error')
     } finally {
       setLoading(false)
     }
@@ -324,7 +315,7 @@ export default function AddPage() {
       {/* Header */}
       <div style={{ background:'var(--bg)', padding:'24px 16px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
-        <span style={{ fontSize:17, fontWeight:700, color:'var(--cream)' }}>إضافة صفحة</span>
+        <span style={{ fontSize:17, fontWeight:700, color:'var(--cream)' }}>{t.add.title}</span>
       </div>
 
       {/* Body */}
@@ -335,14 +326,14 @@ export default function AddPage() {
           <div style={card}>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
               <div style={{ fontSize:32 }}>📖</div>
-              <div style={{ fontSize:17, fontWeight:700, color:'var(--cream)' }}>رقم الصفحة</div>
-              <div style={{ fontSize:12, color:'var(--sub)' }}>من 1 إلى 604</div>
+              <div style={{ fontSize:17, fontWeight:700, color:'var(--cream)' }}>{t.add.pageNumberTitle}</div>
+              <div style={{ fontSize:12, color:'var(--sub)' }}>{t.add.pageRange}</div>
               <input
                 type="number" min="1" max="604"
                 value={value}
                 onChange={e => { setValue(e.target.value); setError('') }}
                 onKeyDown={e => e.key === 'Enter' && !saveDisabled && handleAdd()}
-                placeholder="مثال: 25"
+                placeholder={t.add.placeholder}
                 autoFocus
                 style={{ background:'#0F1210', border:`1.5px solid ${error ? 'var(--red)' : 'var(--border)'}`, borderRadius:12, padding:14, fontSize:28, color:'var(--cream)', textAlign:'center', width:'100%', outline:'none', fontFamily:'Amiri, serif' }}
               />
@@ -352,7 +343,7 @@ export default function AddPage() {
 
           {/* Mode toggle */}
           <div>
-            <div style={{ fontSize:12, color:'var(--sub)', marginBottom:10, fontWeight:600 }}>حالة الصفحة</div>
+            <div style={{ fontSize:12, color:'var(--sub)', marginBottom:10, fontWeight:600 }}>{t.add.pageStatus}</div>
             <div style={{ display:'flex', gap:8 }}>
               {(['new', 'old'] as const).map(m => {
                 const active = mode === m
@@ -365,19 +356,20 @@ export default function AddPage() {
                     fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'Amiri, serif',
                     transition:'all .15s',
                   }}>
-                    {m === 'new' ? 'جديدة' : 'محفوظة سابقًا'}
+                    {m === 'new' ? t.add.newPage : t.add.oldPage}
                   </button>
                 )
               })}
             </div>
           </div>
 
-          {/* Memory state options — مخفي إذا راجع اليوم */}
+          {/* Memory state options */}
           {mode === 'old' && !reviewedToday && (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <div style={{ fontSize:12, color:'var(--sub)', marginBottom:2, fontWeight:600 }}>حالة الحفظ الحالية</div>
+              <div style={{ fontSize:12, color:'var(--sub)', marginBottom:2, fontWeight:600 }}>{t.add.memoryStatus}</div>
               {OLD_OPTIONS.map(key => {
-                const p   = PRESETS[key]
+                const p   = PRESETS_BASE[key]
+                const ms  = t.memoryStates[key]
                 const sel = memState === key
                 return (
                   <button key={key} onClick={() => setMemState(key)} style={{
@@ -390,8 +382,8 @@ export default function AddPage() {
                   }}>
                     <div style={{ width:10, height:10, borderRadius:'50%', background: sel ? p.color : 'var(--border)', flexShrink:0 }}/>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:14, fontWeight:700, color: sel ? p.color : 'var(--cream)' }}>{p.label}</div>
-                      <div style={{ fontSize:11, color:'var(--sub)', marginTop:2 }}>{p.desc}</div>
+                      <div style={{ fontSize:14, fontWeight:700, color: sel ? p.color : 'var(--cream)' }}>{ms.label}</div>
+                      <div style={{ fontSize:11, color:'var(--sub)', marginTop:2 }}>{ms.desc}</div>
                     </div>
                     {sel && <span style={{ color: p.color, fontSize:16 }}>✓</span>}
                   </button>
@@ -427,8 +419,8 @@ export default function AddPage() {
                 {reviewedToday && <span style={{ color:'#000', fontSize:13, fontWeight:800 }}>✓</span>}
               </div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:14, fontWeight:700, color: reviewedToday ? '#38BDF8' : 'var(--cream)' }}>راجعتها اليوم</div>
-                <div style={{ fontSize:11, color:'var(--sub)', marginTop:2 }}>سيُسجَّل تقييم حقيقي بدل التقدير</div>
+                <div style={{ fontSize:14, fontWeight:700, color: reviewedToday ? '#38BDF8' : 'var(--cream)' }}>{t.add.reviewedToday}</div>
+                <div style={{ fontSize:11, color:'var(--sub)', marginTop:2 }}>{t.add.reviewedTodayDesc}</div>
               </div>
             </button>
           )}
@@ -443,8 +435,8 @@ export default function AddPage() {
                 fontFamily:'Amiri, serif', transition:'all .15s',
               }}>
                 <span style={{ fontSize:24 }}>⚡</span>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--cream)' }}>تقييم سريع</span>
-                <span style={{ fontSize:10, color:'var(--sub)' }}>اختر مستوى الأداء</span>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--cream)' }}>{t.add.quickRate}</span>
+                <span style={{ fontSize:10, color:'var(--sub)' }}>{t.add.quickRateDesc}</span>
               </button>
               <button onClick={() => setAddReviewMode('words')} disabled={!validPage} style={{
                 flex:1, padding:'16px 10px', borderRadius:12,
@@ -455,8 +447,8 @@ export default function AddPage() {
                 opacity: validPage ? 1 : 0.4,
               }}>
                 <span style={{ fontSize:24 }}>🔤</span>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--cream)' }}>تحديد الكلمات</span>
-                <span style={{ fontSize:10, color:'var(--sub)' }}>حدد الكلمات الخاطئة</span>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--cream)' }}>{t.add.selectWords}</span>
+                <span style={{ fontSize:10, color:'var(--sub)' }}>{t.add.selectWordsDesc}</span>
               </button>
             </div>
           )}
@@ -465,23 +457,25 @@ export default function AddPage() {
           {mode === 'old' && reviewedToday && addReviewMode === 'quick' && (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
-                <button onClick={() => setAddReviewMode(null)} style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>‹ تغيير</button>
-                <span style={{ fontSize:12, color:'var(--sub)', fontWeight:600 }}>كيف كانت المراجعة؟</span>
+                <button onClick={() => setAddReviewMode(null)} style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>{t.add.changeMode}</button>
+                <span style={{ fontSize:12, color:'var(--sub)', fontWeight:600 }}>{t.add.howWasQuestion}</span>
               </div>
-              {REVIEW_OPTIONS.map(opt => {
-                const sel = todayLevel === opt.key
+              {REVIEW_OPTION_KEYS.map(key => {
+                const meta = REVIEW_OPTION_META[key]
+                const lv   = t.mistakeLevels[key]
+                const sel  = todayLevel === key
                 return (
-                  <button key={opt.key} onClick={() => setTodayLevel(opt.key)} style={{
+                  <button key={key} onClick={() => setTodayLevel(key)} style={{
                     display:'flex', alignItems:'center', gap:12,
                     padding:'12px 14px', borderRadius:12, cursor:'pointer',
-                    border:`1.5px solid ${sel ? opt.color : 'var(--border)'}`,
-                    background: sel ? `${opt.color}12` : '#0F1210',
+                    border:`1.5px solid ${sel ? meta.color : 'var(--border)'}`,
+                    background: sel ? `${meta.color}12` : '#0F1210',
                     fontFamily:'Amiri, serif', textAlign:'right', width:'100%',
                     transition:'all .15s',
                   }}>
-                    <span style={{ fontSize:20 }}>{opt.emoji}</span>
-                    <span style={{ flex:1, fontSize:14, fontWeight:700, color: sel ? opt.color : 'var(--cream)' }}>{opt.label}</span>
-                    {sel && <span style={{ color: opt.color, fontSize:16 }}>✓</span>}
+                    <span style={{ fontSize:20 }}>{meta.emoji}</span>
+                    <span style={{ flex:1, fontSize:14, fontWeight:700, color: sel ? meta.color : 'var(--cream)' }}>{lv.label}</span>
+                    {sel && <span style={{ color: meta.color, fontSize:16 }}>✓</span>}
                   </button>
                 )
               })}
@@ -493,11 +487,11 @@ export default function AddPage() {
             <div>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
                 <button onClick={() => { setAddReviewMode(null); setAddSelectedKeys(new Set()); setAddSelectedWords([]) }}
-                  style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>‹ تغيير</button>
+                  style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>{t.add.changeMode}</button>
                 <span style={{ fontSize:12, color:'var(--sub)', fontWeight:600 }}>
                   {addSelectedWords.length > 0
-                    ? `${addSelectedWords.length} كلمة محددة`
-                    : 'اضغط على الكلمات الخاطئة'}
+                    ? t.add.selectedCount(addSelectedWords.length)
+                    : t.add.tapMistakes}
                 </span>
               </div>
               {addSelectedWords.length > 0 && (
@@ -526,8 +520,8 @@ export default function AddPage() {
             <div>
               <div style={{ fontSize:12, color:'var(--sub)', marginBottom:8, fontWeight:600 }}>
                 {reviewedToday
-                  ? <>متى كانت المراجعة قبل اليوم؟ <span style={{ fontWeight:400 }}>(اختياري)</span></>
-                  : <>متى كانت آخر مراجعة؟ <span style={{ fontWeight:400 }}>(اختياري)</span></>
+                  ? <>{t.add.prevReview} <span style={{ fontWeight:400 }}>{t.add.optional}</span></>
+                  : <>{t.add.lastReview} <span style={{ fontWeight:400 }}>{t.add.optional}</span></>
                 }
               </div>
               <input
@@ -540,11 +534,11 @@ export default function AddPage() {
             </div>
           )}
 
-          {/* Memorized at — month input */}
+          {/* Memorized at */}
           {mode === 'old' && (
             <div>
               <div style={{ fontSize:12, color:'var(--sub)', marginBottom:8, fontWeight:600 }}>
-                متى حفظتها أول مرة تقريبًا؟ <span style={{ fontWeight:400 }}>(اختياري)</span>
+                {t.add.memorizedAt} <span style={{ fontWeight:400 }}>{t.add.optional}</span>
               </div>
               <input
                 type="month"

@@ -3,16 +3,18 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/i18n'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const t = useT()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
 
   async function handleReset() {
-    if (!email) { setError('أدخل بريدك الإلكتروني'); return }
+    if (!email) { setError(t.resetPassword.emptyEmail); return }
     setLoading(true); setError('')
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -36,7 +38,7 @@ export default function ResetPasswordPage() {
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
-        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>استرجاع كلمة المرور</span>
+        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>{t.resetPassword.title}</span>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-4">
@@ -48,18 +50,18 @@ export default function ResetPasswordPage() {
           {sent ? (
             <>
               <div style={{ fontSize: 48 }}>📬</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>تم الإرسال!</div>
-              <div style={{ fontSize: 13, color: 'var(--sub)' }}>تحقق من بريدك الإلكتروني واضغط على الرابط</div>
-              <button onClick={() => router.push('/auth')} style={primaryBtn}>العودة لتسجيل الدخول</button>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>{t.resetPassword.sentTitle}</div>
+              <div style={{ fontSize: 13, color: 'var(--sub)' }}>{t.resetPassword.sentBody}</div>
+              <button onClick={() => router.push('/auth')} style={primaryBtn}>{t.resetPassword.backToSignIn}</button>
             </>
           ) : (
             <>
               <div style={{ fontSize: 48 }}>🔑</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>نسيت كلمة المرور؟</div>
-              <div style={{ fontSize: 13, color: 'var(--sub)' }}>أدخل بريدك وسنرسل لك رابط الاسترجاع</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>{t.resetPassword.heading}</div>
+              <div style={{ fontSize: 13, color: 'var(--sub)' }}>{t.resetPassword.body}</div>
               <input
                 type="email"
-                placeholder="البريد الإلكتروني"
+                placeholder={t.resetPassword.emailPlaceholder}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleReset()}
@@ -67,7 +69,7 @@ export default function ResetPasswordPage() {
               />
               {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
               <button onClick={handleReset} disabled={loading} style={primaryBtn}>
-                {loading ? 'جارٍ الإرسال...' : 'إرسال رابط الاسترجاع'}
+                {loading ? t.resetPassword.sending : t.resetPassword.sendLink}
               </button>
             </>
           )}
