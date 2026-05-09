@@ -176,7 +176,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {dueToday.map(p => <ReviewRow key={p.id} page={p} isOverdue={false} router={router}/>)}
+            {dueToday.map(p => <ReviewRow key={p.id} page={p} isOverdue={false} router={router} today={today}/>)}
             {overdue.length > 0 && (
               <>
                 <div style={{ display:'flex', alignItems:'center', gap:7, padding:'20px 20px 12px', borderTop:`1px solid ${C.sep}` }}>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                     <circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/>
                   </svg>
                 </div>
-                {overdue.map(p => <ReviewRow key={p.id} page={p} isOverdue={true} router={router}/>)}
+                {overdue.map(p => <ReviewRow key={p.id} page={p} isOverdue={true} router={router} today={today}/>)}
               </>
             )}
           </>
@@ -278,22 +278,43 @@ export default function DashboardPage() {
   )
 }
 
-function ReviewRow({ page, isOverdue, router }: {
-  page: Page; isOverdue: boolean; router: ReturnType<typeof useRouter>
+function ReviewRow({ page, isOverdue, router, today }: {
+  page: Page; isOverdue: boolean; router: ReturnType<typeof useRouter>; today: string
 }) {
   const { label, color } = getLastLabel(page)
+  const readToday = page.last_read_at === today
   return (
     <div onClick={() => router.push(`/pages/${page.id}`)} style={{
       display:'flex', alignItems:'center', justifyContent:'space-between',
       padding:'16px 20px', borderBottom:`1px solid ${C.sep}`,
       borderRight: isOverdue ? `3px solid ${C.orange}` : '3px solid transparent',
       background: isOverdue ? `${C.orange}08` : 'transparent', cursor:'pointer',
+      gap:10,
     }}>
-      <button onClick={e => { e.stopPropagation(); router.push(`/review/${page.id}`) }} style={{
-        background: C.green, border:'none', color:'#000',
-        padding:'11px 24px', borderRadius:24, cursor:'pointer',
-        fontSize:14, fontWeight:800, fontFamily:'Amiri, serif', flexShrink:0,
-      }}>مراجعة ›</button>
+      <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+        <button onClick={e => { e.stopPropagation(); router.push(`/review/${page.id}`) }} style={{
+          background: C.green, border:'none', color:'#000',
+          padding:'11px 18px', borderRadius:24, cursor:'pointer',
+          fontSize:14, fontWeight:800, fontFamily:'Amiri, serif',
+        }}>مراجعة ›</button>
+        <button
+          onClick={e => {
+            e.stopPropagation()
+            if (readToday) return
+            router.push(`/review/${page.id}?mode=reading`)
+          }}
+          disabled={readToday}
+          style={{
+            background: readToday ? C.sep : 'transparent',
+            border: `1.5px solid ${readToday ? C.sep : C.accent}`,
+            color: readToday ? C.sub : C.accent,
+            padding:'10px 14px', borderRadius:24,
+            cursor: readToday ? 'not-allowed' : 'pointer',
+            fontSize:13, fontWeight:700, fontFamily:'Amiri, serif',
+          }}>
+          {readToday ? 'قُرئت اليوم' : 'قراءة'}
+        </button>
+      </div>
       <span style={{ fontSize:19, fontWeight:700, color: C.title }}>صفحة {page.page_number}</span>
       <span style={{ fontSize:11, fontWeight:700, color, background:`${color}1A`, padding:'5px 12px', borderRadius:20, minWidth:52, textAlign:'center', flexShrink:0 }}>
         {label}
