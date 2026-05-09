@@ -30,6 +30,8 @@ function makePage(overrides: Partial<Page> = {}): Page {
     last_mistake_level:   null,
     initial_memory_state: 'new',
     memorized_at:         null,
+    last_read_at:         null,
+    reading_count:        0,
     ...overrides,
   }
 }

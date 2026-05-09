@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Page, MistakeLevel, QuranWord } from '@/lib/types'
 import { todayStr } from '@/lib/spaced-rep'
 import { scheduleReview, MISTAKE_TO_STRENGTH, createInitialState } from '@/lib/quran-scheduler'
+import { scheduleReadingReview } from '@/lib/quran-reading-scheduler'
 import { loadPageWords } from '@/lib/quran-data'
 import { calcMistakeLevel, saveWordMistakes } from '@/lib/word-scorer'
 import { uid } from '@/lib/utils'
@@ -24,13 +25,18 @@ const options: { key: MistakeLevel; label: string; emoji: string; desc: string; 
 export default function ReviewPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
+  const isReading = searchParams.get('mode') === 'reading'
 
   const [page, setPage]         = useState<Page | null>(null)
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
+  const [readingError, setReadingError] = useState('')
 
-  // mode
-  const [reviewMode, setReviewMode] = useState<'quick' | 'words' | null>(null)
+  // mode — initialized from URL: ?mode=reading skips the mode selector
+  const [reviewMode, setReviewMode] = useState<'quick' | 'words' | 'reading' | null>(
+    isReading ? 'reading' : null,
+  )
 
   // quick mode
   const [mistakeLevel, setMistakeLevel] = useState<MistakeLevel | null>(null)
@@ -111,6 +117,66 @@ export default function ReviewPage() {
     return { logId, result }
   }
 
+  // ── reading mode confirm ──────────────────────────────────────────────────
+  async function handleConfirmReading() {
+    if (!page || saving) return
+    const today = todayStr()
+    if (page.last_read_at === today) {
+      setReadingError('تمت قراءة هذه الصفحة اليوم')
+      return
+    }
+
+    setSaving(true)
+    setReadingError('')
+    try {
+      const result = scheduleReadingReview(page, today)
+      const logId  = uid()
+
+      // 1) Insert review_log FIRST — if this fails we don't want to leave the
+      // page with bumped reading_count but no log. (Page update is recoverable
+      // since we re-read the page on next visit.)
+      const { error: le } = await supabase.from('review_logs').insert({
+        id:                     logId,
+        user_id:                page.user_id,
+        page_id:                page.id,
+        reviewed_at:            today,
+        review_type:            'reading',
+        strength:               'reading',
+        mistake_level:          null,
+        next_review_date:       result.nextReviewDate,
+        previous_interval_days: page.current_interval_days,
+        new_interval_days:      result.postponeDays,
+        stability_before:       page.stability_days,
+        stability_after:        page.stability_days,
+        retrievability_before:  null,
+      })
+      if (le) {
+        console.error('[reading] review_log insert failed:', le)
+        throw new Error(`فشل تسجيل القراءة: ${le.message}`)
+      }
+
+      // 2) Update only fields reading is allowed to touch.
+      // stability_days, difficulty, review_stage, review_count,
+      // last_reviewed_at, current_interval_days — UNCHANGED.
+      const { error: pe } = await supabase.from('pages').update({
+        next_review_date: result.nextReviewDate,
+        risk_score:       result.newRiskScore,
+        last_read_at:     result.lastReadAt,
+        reading_count:    result.newReadingCount,
+      }).eq('id', page.id)
+      if (pe) {
+        console.error('[reading] pages update failed:', pe)
+        throw new Error(`فشل تحديث الصفحة: ${pe.message}`)
+      }
+
+      router.push('/dashboard')
+    } catch (err) {
+      console.error('[reading] failed:', err)
+      setReadingError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع')
+      setSaving(false)
+    }
+  }
+
   // ── quick mode confirm ────────────────────────────────────────────────────
   async function handleConfirm() {
     if (!mistakeLevel || !page) return
@@ -185,10 +251,12 @@ export default function ReviewPage() {
       {/* Header */}
       <div style={{ background:'var(--bg)', padding:'24px 16px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12 }}>
         <button
-          onClick={() => reviewMode ? setReviewMode(null) : router.back()}
+          onClick={() => (reviewMode && !isReading) ? setReviewMode(null) : router.back()}
           style={backBtn}>‹</button>
         <span style={{ fontSize:17, fontWeight:700, color:'var(--cream)' }}>
-          {reviewMode === 'words' ? 'حدد الكلمات الخاطئة' : 'مراجعة الصفحة'}
+          {reviewMode === 'words'   ? 'حدد الكلمات الخاطئة'
+          : reviewMode === 'reading' ? 'قراءة سريعة'
+          :                            'مراجعة الصفحة'}
         </span>
         {reviewMode === 'words' && selectedKeys.size > 0 && (
           <span style={{ marginRight:'auto', fontSize:13, fontWeight:700, color:'#EF4444', background:'rgba(239,68,68,0.12)', padding:'4px 12px', borderRadius:20 }}>
@@ -356,6 +424,58 @@ export default function ReviewPage() {
             )}
           </>
         )}
+
+        {/* ── Reading mode ── */}
+        {reviewMode === 'reading' && (() => {
+          const alreadyReadToday = page.last_read_at === todayStr()
+          const disabled = saving || alreadyReadToday
+          return (
+            <>
+              {/* Warning */}
+              <div style={{
+                background:'rgba(56,189,248,0.07)',
+                border:'1px solid rgba(56,189,248,0.25)',
+                borderRadius:14, padding:'14px 16px', marginBottom:16, textAlign:'center',
+              }}>
+                <div style={{ fontSize:13, color:'#38BDF8', fontWeight:700, marginBottom:4 }}>
+                  📖 القراءة السريعة لا تغني عن التسميع
+                </div>
+                <div style={{ fontSize:12, color:'var(--sub)', lineHeight:1.7 }}>
+                  هذه الصفحة ستُؤجَّل 1–3 أيام فقط — ولن تُعدّ مراجعة كاملة
+                </div>
+              </div>
+
+              {/* Quran page (read-only) */}
+              <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:16, marginBottom:16, overflow:'hidden' }}>
+                <QuranPage pageNumber={page.page_number} />
+              </div>
+
+              {/* Error */}
+              {readingError && (
+                <div style={{
+                  background:'rgba(239,68,68,0.08)',
+                  border:'1px solid rgba(239,68,68,0.3)',
+                  borderRadius:12, padding:'12px 16px', marginBottom:12,
+                  fontSize:13, color:'#EF4444', textAlign:'center', fontFamily:'Amiri, serif',
+                }}>
+                  {readingError}
+                </div>
+              )}
+
+              {/* Confirm reading */}
+              <button onClick={handleConfirmReading} disabled={disabled} style={{
+                background: disabled ? '#252B28' : '#38BDF8',
+                border:'none', color: disabled ? 'var(--sub)' : '#000',
+                padding:16, borderRadius:14, cursor: disabled ? 'not-allowed' : 'pointer',
+                fontSize:16, fontWeight:800, width:'100%', fontFamily:'Amiri, serif', transition:'all .15s',
+              }}>
+                {saving             ? 'جارٍ الحفظ...'
+                : alreadyReadToday  ? 'تمت قراءة هذه الصفحة اليوم'
+                :                     'تمت القراءة ✓'}
+              </button>
+            </>
+          )
+        })()}
 
       </div>
     </div>

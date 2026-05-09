@@ -1,5 +1,9 @@
 export type Strength = 'strong' | 'medium' | 'weak'  // deprecated — kept for backward compat
 
+// Extends Strength for the review_logs.strength column,
+// which also stores 'reading' for reading-only sessions.
+export type ReviewStrength = Strength | 'reading'
+
 export type MistakeLevel =
   | 'perfect'     // لا أخطاء
   | 'minor'       // خطأ بسيط
@@ -59,6 +63,9 @@ export interface Page {
   last_mistake_level:    MistakeLevel | null
   initial_memory_state:  InitialMemoryState
   memorized_at:          string | null
+  // Reading Stabilizer (v1)
+  last_read_at:    string | null
+  reading_count:   number
 }
 
 export interface ReviewLog {
@@ -66,7 +73,7 @@ export interface ReviewLog {
   user_id: string
   page_id: string
   reviewed_at: string
-  strength: Strength
+  strength: ReviewStrength
   previous_interval_days: number
   new_interval_days: number
   next_review_date: string
@@ -75,4 +82,6 @@ export interface ReviewLog {
   stability_before:       number | null
   stability_after:        number | null
   retrievability_before:  number | null
+  // Reading Stabilizer (v1)
+  review_type: 'recitation' | 'reading'
 }

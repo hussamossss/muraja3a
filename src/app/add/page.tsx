@@ -196,6 +196,8 @@ export default function AddPage() {
           consecutive_good:     0,
           risk_score:           0,
           memorized_at:         memorizedAt || null,
+          last_read_at:         null,
+          reading_count:        0,
         }
 
         const result        = scheduleReview(virtualPage, resolvedLevel, today)
