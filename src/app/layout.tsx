@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { LanguageProvider } from '@/lib/i18n'
 
 export const metadata: Metadata = {
   title: 'مجدول مراجعة الحفظ',
@@ -21,9 +22,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <div className="w-full">
-          {children}
-        </div>
+        <LanguageProvider>
+          <div className="w-full">
+            {children}
+          </div>
+        </LanguageProvider>
       </body>
     </html>
   )

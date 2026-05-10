@@ -6,13 +6,15 @@ import { useRouter } from 'next/navigation'
 import { Page, ReviewLog, WordMistake } from '@/lib/types'
 import { todayStr } from '@/lib/spaced-rep'
 import BottomNav from '@/components/BottomNav'
+import { useI18n } from '@/lib/i18n'
 
 export default function StatsPage() {
   const router = useRouter()
-  const [pages,     setPages]     = useState<Page[]>([])
-  const [logs,      setLogs]      = useState<ReviewLog[]>([])
-  const [mistakes,  setMistakes]  = useState<WordMistake[]>([])
-  const [loading,   setLoading]   = useState(true)
+  const { t, lang, setLang } = useI18n()
+  const [pages,    setPages]    = useState<Page[]>([])
+  const [logs,     setLogs]     = useState<ReviewLog[]>([])
+  const [mistakes, setMistakes] = useState<WordMistake[]>([])
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => { loadData() }, [])
 
@@ -31,23 +33,33 @@ export default function StatsPage() {
     setLoading(false)
   }
 
-  const today       = todayStr()
-  const total       = pages.length
-  const totalRev    = logs.length
-  const todayRev    = logs.filter(l => l.reviewed_at === today).length
-  // count by mistake_level (new) with fallback to strength (old)
-  const getCount = (levels: string[]) =>
-    logs.filter(l => levels.includes(l.mistake_level ?? l.strength)).length
-  const excellent = getCount(['perfect', 'minor', 'strong'])
-  const partial   = getCount(['impactful', 'few', 'medium'])
-  const poor      = getCount(['many', 'lapse', 'weak'])
+  const today          = todayStr()
+  const total          = pages.length
+
+  // Separate recitation reviews from reading reviews
+  // Old rows without review_type are recitations
+  const recitationLogs = logs.filter(l => !l.review_type || l.review_type === 'recitation')
+  const readingLogs    = logs.filter(l => l.review_type === 'reading')
+
+  const totalRec   = recitationLogs.length
+  const totalReads = readingLogs.length
+  const todayRec   = recitationLogs.filter(l => l.reviewed_at === today).length
+  const todayReads = readingLogs.filter(l => l.reviewed_at === today).length
+
+  // Strength distribution — recitation only (reading has no real strength level)
+  const getCount = (src: ReviewLog[], levels: string[]) =>
+    src.filter(l => levels.includes(l.mistake_level ?? l.strength)).length
+  const excellent = getCount(recitationLogs, ['perfect', 'minor', 'strong'])
+  const partial   = getCount(recitationLogs, ['impactful', 'few', 'medium'])
+  const poor      = getCount(recitationLogs, ['many', 'lapse', 'weak'])
   const maxS      = Math.max(excellent, partial, poor, 1)
 
-  // memory stages: prefer review_stage if populated, else use current_interval_days
+  // Memory stages
   const fresh     = pages.filter(p => (p.review_stage ?? 'learning') === 'learning' || p.current_interval_days <= 3).length
   const mid       = pages.filter(p => p.review_stage === 'review' || (!p.review_stage && p.current_interval_days > 3 && p.current_interval_days <= 14)).length
   const strongMem = pages.filter(p => p.review_stage === 'mature' || p.review_stage === 'fragile' || (!p.review_stage && p.current_interval_days > 14)).length
 
+  // Streak — any review activity counts (reading or recitation)
   let streak = 0
   const days = [...new Set(logs.map(l => l.reviewed_at))].sort().reverse()
   let check = today
@@ -59,7 +71,7 @@ export default function StatsPage() {
     } else if (d < check) break
   }
 
-  // top 10 mistake words
+  // Top 10 mistake words
   const wordMap = new Map<string, { text: string; count: number; pages: Set<number> }>()
   mistakes.forEach(m => {
     const key = m.normalized_word
@@ -80,10 +92,11 @@ export default function StatsPage() {
   )
 
   const statCards = [
-    { num: streak,    color: '#A855F7', label: 'أيام متواصلة', icon: '🔥' },
-    { num: todayRev,  color: '#38BDF8', label: 'مراجعات اليوم', icon: '📅' },
-    { num: fresh,     color: '#F97316', label: 'صفحات جديدة',  icon: '🆕' },
-    { num: strongMem, color: '#22C55E', label: 'حفظ راسخ',      icon: '💎' },
+    { num: streak,    color: '#A855F7', label: t('streakDays'),       icon: '🔥' },
+    { num: todayRec,  color: '#38BDF8', label: t('todayRecitations'), icon: '🎙️' },
+    { num: todayReads,color: '#A855F7', label: t('todayReadings'),    icon: '📖' },
+    { num: fresh,     color: '#F97316', label: t('freshPages'),       icon: '🆕' },
+    { num: strongMem, color: '#22C55E', label: t('strongMemory'),     icon: '💎' },
   ]
 
   return (
@@ -92,49 +105,59 @@ export default function StatsPage() {
       {/* Header */}
       <div style={{ background:'var(--bg)', padding:'48px 16px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
-        <span style={{ fontSize:18, fontWeight:700, color:'var(--cream)' }}>إحصائياتك</span>
+        <span style={{ fontSize:18, fontWeight:700, color:'var(--cream)', flex:1 }}>{t('statsTitle')}</span>
+        <button
+          onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+          style={{ fontSize:12, fontWeight:700, color:'var(--sub)', background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', borderRadius:20, padding:'5px 14px', cursor:'pointer' }}>
+          {lang === 'ar' ? 'EN' : 'AR'}
+        </button>
       </div>
 
       <div style={{ flex:1, padding:'20px 16px 86px', overflowY:'auto' }}>
 
-        {/* Hero — big numbers */}
+        {/* Hero — 3 numbers: pages | recitations | readings */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:20, padding:'24px 20px', marginBottom:16, borderTop:'3px solid #22C55E' }}>
           <div style={{ display:'flex', justifyContent:'space-around', textAlign:'center' }}>
             <div>
-              <div style={{ fontSize:48, fontWeight:800, color:'#22C55E', lineHeight:1 }}>{total}</div>
-              <div style={{ fontSize:12, color:'var(--sub)', marginTop:4 }}>صفحة محفوظة</div>
+              <div style={{ fontSize:44, fontWeight:800, color:'#22C55E', lineHeight:1 }}>{total}</div>
+              <div style={{ fontSize:11, color:'var(--sub)', marginTop:4 }}>{t('pagesSaved')}</div>
             </div>
             <div style={{ width:1, background:'var(--border)' }}/>
             <div>
-              <div style={{ fontSize:48, fontWeight:800, color:'#38BDF8', lineHeight:1 }}>{totalRev}</div>
-              <div style={{ fontSize:12, color:'var(--sub)', marginTop:4 }}>مراجعة منجزة</div>
+              <div style={{ fontSize:44, fontWeight:800, color:'#38BDF8', lineHeight:1 }}>{totalRec}</div>
+              <div style={{ fontSize:11, color:'var(--sub)', marginTop:4 }}>{t('recitationsDone')}</div>
+            </div>
+            <div style={{ width:1, background:'var(--border)' }}/>
+            <div>
+              <div style={{ fontSize:44, fontWeight:800, color:'#A855F7', lineHeight:1 }}>{totalReads}</div>
+              <div style={{ fontSize:11, color:'var(--sub)', marginTop:4 }}>{t('readingsDone')}</div>
             </div>
           </div>
         </div>
 
-        {/* Stats grid — large numbers, colored top border (Fitts's Law: tap area) */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:20 }}>
+        {/* Stats grid — 5 cards */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:10, marginBottom:20 }}>
           {statCards.map((s, i) => (
             <div key={i} style={{
               background:'var(--card)', border:'1px solid var(--border)',
               borderTop:`3px solid ${s.color}`,
               borderRadius:14, padding:'18px 14px', textAlign:'center',
             }}>
-              <div style={{ fontSize:44, fontWeight:800, color: s.color, lineHeight:1 }}>{s.num}</div>
+              <div style={{ fontSize:40, fontWeight:800, color: s.color, lineHeight:1 }}>{s.num}</div>
               <div style={{ fontSize:11, color:'var(--sub)', marginTop:6 }}>{s.icon} {s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Strength bars */}
-        <div style={sectionLabel}>توزيع التقييمات</div>
+        {/* Strength bars — recitation only */}
+        <div style={sectionLabel}>{t('ratingDist')}</div>
         <div style={card}>
-          {totalRev === 0
-            ? <div style={{ fontSize:13, color:'var(--sub)', textAlign:'center' }}>لا توجد مراجعات بعد</div>
+          {totalRec === 0
+            ? <div style={{ fontSize:13, color:'var(--sub)', textAlign:'center' }}>{t('noReviewsYet')}</div>
             : [
-                { label:'ممتاز', count:excellent, color:'#22C55E' },
-                { label:'جزئي',  count:partial,   color:'#F97316' },
-                { label:'صعب',   count:poor,      color:'#EF4444' },
+                { label: t('excellent'), count:excellent, color:'#22C55E' },
+                { label: t('partial'),   count:partial,   color:'#F97316' },
+                { label: t('poor'),      count:poor,      color:'#EF4444' },
               ].map((b, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, marginBottom: i < 2 ? 14 : 0 }}>
                   <span style={{
@@ -154,7 +177,7 @@ export default function StatsPage() {
         {/* Top mistake words */}
         {topWords.length > 0 && (
           <>
-            <div style={sectionLabel}>أكثر الكلمات التي أخطأت فيها</div>
+            <div style={sectionLabel}>{t('topMistakeWords')}</div>
             <div style={{ ...card, marginBottom:20 }}>
               {topWords.map((w, i) => (
                 <div key={w.text + i} style={{
@@ -169,7 +192,7 @@ export default function StatsPage() {
                       color:'#EF4444', minWidth:60,
                     }}>{w.text}</span>
                     <span style={{ fontSize:11, color:'var(--sub)' }}>
-                      {[...w.pages].sort((a,b)=>a-b).map(p=>`ص${p}`).join('، ')}
+                      {[...w.pages].sort((a,b)=>a-b).map(p=>`${t('pageAbbr')}${p}`).join('، ')}
                     </span>
                   </div>
                   <span style={{
@@ -186,14 +209,14 @@ export default function StatsPage() {
         )}
 
         {/* Memory stages */}
-        <div style={sectionLabel}>مراحل الحفظ</div>
+        <div style={sectionLabel}>{t('memoryStages')}</div>
         <div style={{ ...card, marginBottom:24 }}>
           {total === 0
-            ? <div style={{ fontSize:13, color:'var(--sub)', textAlign:'center' }}>لا توجد صفحات بعد</div>
+            ? <div style={{ fontSize:13, color:'var(--sub)', textAlign:'center' }}>{t('noPagesYet')}</div>
             : [
-                { label:'جديدة',  count:fresh,    color:'#22C55E' },
-                { label:'نشطة',   count:mid,       color:'#38BDF8' },
-                { label:'راسخة',  count:strongMem, color:'#A855F7' },
+                { label: t('stageNew'),    count:fresh,    color:'#22C55E' },
+                { label: t('stageActive'), count:mid,       color:'#38BDF8' },
+                { label: t('stageMature'), count:strongMem, color:'#A855F7' },
               ].map((b, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:10, marginBottom: i < 2 ? 14 : 0 }}>
                   <span style={{
@@ -216,6 +239,6 @@ export default function StatsPage() {
   )
 }
 
-const backBtn: React.CSSProperties  = { width:36, height:36, borderRadius:10, background:'transparent', border:'1px solid var(--border)', color:'var(--sub)', cursor:'pointer', fontSize:20 }
+const backBtn: React.CSSProperties      = { width:36, height:36, borderRadius:10, background:'transparent', border:'1px solid var(--border)', color:'var(--sub)', cursor:'pointer', fontSize:20 }
 const sectionLabel: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--sub)', letterSpacing:.5, marginBottom:10, paddingRight:2 }
-const card: React.CSSProperties     = { background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, padding:'18px 16px', marginBottom:16 }
+const card: React.CSSProperties        = { background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, padding:'18px 16px', marginBottom:16 }

@@ -305,12 +305,12 @@ function ReviewRow({ page, isOverdue, router, today }: {
           }}
           disabled={readToday}
           style={{
-            background: readToday ? C.sep : 'transparent',
-            border: `1.5px solid ${readToday ? C.sep : C.accent}`,
-            color: readToday ? C.sub : C.accent,
-            padding:'10px 14px', borderRadius:24,
+            background: readToday ? C.sep : C.accent,
+            border: 'none',
+            color: readToday ? C.sub : '#000',
+            padding:'11px 18px', borderRadius:24,
             cursor: readToday ? 'not-allowed' : 'pointer',
-            fontSize:13, fontWeight:700, fontFamily:'Amiri, serif',
+            fontSize:14, fontWeight:800, fontFamily:'Amiri, serif',
           }}>
           {readToday ? 'قُرئت اليوم' : 'قراءة'}
         </button>

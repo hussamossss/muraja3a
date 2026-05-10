@@ -26,17 +26,21 @@ export default function ReviewPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const searchParams = useSearchParams()
-  const isReading = searchParams.get('mode') === 'reading'
+  const modeParam    = searchParams.get('mode')
+  const isReading    = modeParam === 'reading'
 
   const [page, setPage]         = useState<Page | null>(null)
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
   const [readingError, setReadingError] = useState('')
 
-  // mode — initialized from URL: ?mode=reading skips the mode selector
-  const [reviewMode, setReviewMode] = useState<'quick' | 'words' | 'reading' | null>(
-    isReading ? 'reading' : null,
-  )
+  // mode — synced from URL: ?mode=reading enters reading view directly.
+  // useEffect (not useState initializer) so it works under static prerender,
+  // where useSearchParams may be empty on first render.
+  const [reviewMode, setReviewMode] = useState<'quick' | 'words' | 'reading' | null>(null)
+  useEffect(() => {
+    if (modeParam === 'reading') setReviewMode('reading')
+  }, [modeParam])
 
   // quick mode
   const [mistakeLevel, setMistakeLevel] = useState<MistakeLevel | null>(null)
