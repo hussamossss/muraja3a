@@ -4,63 +4,55 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Page } from '@/lib/types'
-import { todayStr, daysDiff, formatDate } from '@/lib/spaced-rep'
+import { todayStr, daysDiff } from '@/lib/spaced-rep'
 import BottomNav from '@/components/BottomNav'
+import { useI18n } from '@/lib/i18n'
+import type { Lang } from '@/lib/translations'
 
 const C = {
-  bg:     '#0B0D0C',
-  card:   '#161A18',
-  border: '#252B28',
-  title:  '#FFFFFF',
-  sub:    '#8A8F8F',
-  green:  '#22C55E',
-  orange: '#F97316',
-  red:    '#EF4444',
-  accent: '#38BDF8',
+  bg:'#0B0D0C', card:'#161A18', border:'#252B28', title:'#FFFFFF',
+  sub:'#8A8F8F', green:'#22C55E', orange:'#F97316', red:'#EF4444', accent:'#38BDF8',
 }
 
-function dateLabel(dateStr: string): string {
-  const d    = daysDiff(dateStr)
-  const date = new Date(dateStr + 'T00:00:00')
-  const day  = date.toLocaleDateString('ar-EG', { weekday: 'long' })
-  const md   = date.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })
-  if (d === 1) return `غداً - ${day} ${md}`
-  if (d === 2) return `بعد يومين - ${day} ${md}`
-  if (d <= 7)  return `${day} ${md} - بعد ${d} أيام`
+function dateLabel(dateStr: string, lang: Lang): string {
+  const d      = daysDiff(dateStr)
+  const locale = lang === 'ar' ? 'ar-EG' : 'en-US'
+  const date   = new Date(dateStr + 'T00:00:00')
+  const day    = date.toLocaleDateString(locale, { weekday:'long' })
+  const md     = date.toLocaleDateString(locale, { day:'numeric', month:'long' })
+  if (d === 1) return lang === 'ar' ? `غداً - ${day} ${md}` : `Tomorrow - ${day} ${md}`
+  if (d === 2) return lang === 'ar' ? `بعد يومين - ${day} ${md}` : `In 2 days - ${day} ${md}`
+  if (d <= 7)  return lang === 'ar' ? `${day} ${md} - بعد ${d} أيام` : `${day} ${md} - in ${d} days`
   return `${day} ${md}`
 }
 
-const MISTAKE_LABEL: Record<string, string> = {
-  perfect:'لا أخطاء', minor:'خطأ بسيط', impactful:'خطأ مؤثر',
-  few:'2-3 أخطاء', many:'4-6 أخطاء', lapse:'نسيت',
-  strong:'قوي', medium:'متوسط', weak:'ضعيف',
-}
-const MISTAKE_COLOR: Record<string, string> = {
+const SC: Record<string, string> = {
+  strong:'#22C55E', medium:'#F97316', weak:'#EF4444',
   perfect:'#22C55E', minor:'#84CC16', impactful:'#F97316',
   few:'#FB923C', many:'#EF4444', lapse:'#7C3AED',
-  strong: C.green, medium: C.orange, weak: C.red,
-}
-
-function strengthInfo(page: Page): { label: string; color: string } | null {
-  const key = page.last_mistake_level ?? page.last_strength
-  if (!key) return null
-  return { label: MISTAKE_LABEL[key] ?? key, color: MISTAKE_COLOR[key] ?? C.sub }
 }
 
 export default function CalendarPage() {
   const router = useRouter()
+  const { t, lang } = useI18n()
   const [pages, setPages]       = useState<Page[]>([])
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [swipedId, setSwipedId] = useState<string | null>(null)
+
+  const SL_KEY: Record<string, any> = {
+    strong:'strStrong', medium:'strMedium', weak:'strWeak',
+    perfect:'strPerfect', minor:'strMinor', impactful:'strImpactful',
+    few:'strFew', many:'strMany', lapse:'strLapse',
+  }
+  const getLabel = (key: string) => SL_KEY[key] ? t(SL_KEY[key]) : key
 
   useEffect(() => { loadPages() }, [])
 
   async function loadPages() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/auth'); return }
-    const { data, error } = await supabase
-      .from('pages').select('*').eq('user_id', session.user.id)
+    const { data, error } = await supabase.from('pages').select('*').eq('user_id', session.user.id)
     if (!error && data) {
       const today    = todayStr()
       const upcoming = data
@@ -103,61 +95,39 @@ export default function CalendarPage() {
 
   return (
     <div style={{ minHeight:'100vh', background: C.bg, paddingBottom:86 }}>
-
-      {/* Header */}
       <div style={{ background: C.bg, padding:'48px 16px 16px', borderBottom:`1px solid ${C.border}`, display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
-        <span style={{ fontSize:18, fontWeight:700, color: C.title }}>جلساتك القادمة</span>
+        <span style={{ fontSize:18, fontWeight:700, color: C.title }}>{t('calTitle')}</span>
         {pages.length > 0 && (
           <span style={{ marginRight:'auto', fontSize:12, color: C.accent, background:`${C.accent}15`, padding:'4px 10px', borderRadius:20, fontWeight:600 }}>
-            {pages.length} صفحة
+            {pages.length} {t('pagesWord')}
           </span>
         )}
       </div>
 
-      {/* Content */}
       <div>
         {groups.length === 0 ? (
           <div style={{ textAlign:'center', padding:'80px 24px' }}>
             <div style={{ fontSize:52, marginBottom:16 }}>📿</div>
-            <div style={{ fontSize:18, fontWeight:700, color: C.title, marginBottom:8 }}>لا توجد جلسات قادمة</div>
-            <div style={{ fontSize:13, color: C.sub }}>أضف صفحات جديدة لتظهر هنا</div>
+            <div style={{ fontSize:18, fontWeight:700, color: C.title, marginBottom:8 }}>{t('calEmpty')}</div>
+            <div style={{ fontSize:13, color: C.sub }}>{t('calEmptySub')}</div>
           </div>
         ) : (
           groups.map(([date, groupPages]) => {
             const open = expanded.has(date)
             return (
               <div key={date}>
-                {/* Group header */}
-                <div style={{
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
-                  padding:'14px 16px',
-                  background: C.card,
-                  borderBottom:`1px solid ${C.border}`,
-                  borderTop:`1px solid ${C.border}`,
-                  marginTop:8,
-                }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', background: C.card, borderBottom:`1px solid ${C.border}`, borderTop:`1px solid ${C.border}`, marginTop:8 }}>
                   <div>
-                    <div style={{ fontSize:15, fontWeight:700, color: C.title }}>
-                      {dateLabel(date)}
-                    </div>
-                    <div style={{ fontSize:11, color: C.sub, marginTop:2 }}>
-                      {groupPages.length} صفحة
-                    </div>
+                    <div style={{ fontSize:15, fontWeight:700, color: C.title }}>{dateLabel(date, lang)}</div>
+                    <div style={{ fontSize:11, color: C.sub, marginTop:2 }}>{groupPages.length} {t('pagesWord')}</div>
                   </div>
                   <button
                     onClick={() => toggle(date)}
-                    style={{
-                      background:'none', border:`1px solid ${C.border}`,
-                      color: C.accent, fontSize:12, fontWeight:600,
-                      padding:'6px 14px', borderRadius:20, cursor:'pointer',
-                      fontFamily:'Amiri, serif', flexShrink:0,
-                    }}>
-                    {open ? 'إخفاء الصفحات' : 'عرض الصفحات'}
+                    style={{ background:'none', border:`1px solid ${C.border}`, color: C.accent, fontSize:12, fontWeight:600, padding:'6px 14px', borderRadius:20, cursor:'pointer', fontFamily:'Amiri, serif', flexShrink:0 }}>
+                    {open ? t('calHide') : t('calShow')}
                   </button>
                 </div>
-
-                {/* Pages */}
                 {open && groupPages.map(p => (
                   <PageRow
                     key={p.id}
@@ -167,6 +137,10 @@ export default function CalendarPage() {
                     onCancel={() => setSwipedId(null)}
                     onDelete={() => deletePage(p.id)}
                     onOpen={() => router.push(`/pages/${p.id}`)}
+                    getLabel={getLabel}
+                    deleteLabel={t('calDeleteBtn')}
+                    newLabel={t('calNew')}
+                    pageLabel={t('pageWord')}
                   />
                 ))}
               </div>
@@ -179,37 +153,25 @@ export default function CalendarPage() {
   )
 }
 
-// ── PageRow with swipe-to-delete ──────────────────────────────────
 const DELETE_W = 76
 
-function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
-  page: Page
-  swiped: boolean
-  onSwipe: () => void
-  onCancel: () => void
-  onDelete: () => void
-  onOpen: () => void
+function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen, getLabel, deleteLabel, newLabel, pageLabel }: {
+  page: Page; swiped: boolean
+  onSwipe: () => void; onCancel: () => void; onDelete: () => void; onOpen: () => void
+  getLabel: (k: string) => string; deleteLabel: string; newLabel: string; pageLabel: string
 }) {
   const startX = useRef<number | null>(null)
-  const badge  = strengthInfo(page)
+  const key    = page.last_mistake_level ?? page.last_strength
+  const color  = key ? (SC[key] ?? C.sub) : C.sub
+  const label  = key ? getLabel(key) : null
 
   return (
     <div style={{ position:'relative', overflow:'hidden', borderBottom:`1px solid ${C.border}` }}>
-
-      {/* Delete zone — revealed on the right when content slides left */}
-      <div style={{
-        position:'absolute', right:0, top:0, bottom:0, width: DELETE_W,
-        background: C.red,
-        display:'flex', alignItems:'center', justifyContent:'center',
-      }}>
-        <button
-          onClick={e => { e.stopPropagation(); onDelete() }}
-          style={{ background:'none', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'Amiri, serif' }}>
-          🗑 حذف
+      <div style={{ position:'absolute', right:0, top:0, bottom:0, width: DELETE_W, background: C.red, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <button onClick={e => { e.stopPropagation(); onDelete() }} style={{ background:'none', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'Amiri, serif' }}>
+          {deleteLabel}
         </button>
       </div>
-
-      {/* Row content */}
       <div
         onTouchStart={e  => { startX.current = e.touches[0].clientX }}
         onTouchEnd={e => {
@@ -220,25 +182,12 @@ function PageRow({ page, swiped, onSwipe, onCancel, onDelete, onOpen }: {
           startX.current = null
         }}
         onClick={() => swiped ? onCancel() : onOpen()}
-        style={{
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'16px 16px',
-          background: C.bg,
-          transform: swiped ? `translateX(-${DELETE_W}px)` : 'translateX(0)',
-          transition:'transform .22s ease',
-          cursor:'pointer',
-        }}>
-        <span style={{ fontSize:16, fontWeight:600, color: C.title }}>
-          صفحة {page.page_number}
-        </span>
-        {badge ? (
-          <span style={{
-            fontSize:11, fontWeight:700, color: badge.color,
-            background:`${badge.color}1A`,
-            padding:'4px 12px', borderRadius:20,
-          }}>{badge.label}</span>
+        style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 16px', background: C.bg, transform: swiped ? `translateX(-${DELETE_W}px)` : 'translateX(0)', transition:'transform .22s ease', cursor:'pointer' }}>
+        <span style={{ fontSize:16, fontWeight:600, color: C.title }}>{pageLabel} {page.page_number}</span>
+        {label ? (
+          <span style={{ fontSize:11, fontWeight:700, color, background:`${color}1A`, padding:'4px 12px', borderRadius:20 }}>{label}</span>
         ) : (
-          <span style={{ fontSize:11, color: C.sub }}>جديدة</span>
+          <span style={{ fontSize:11, color: C.sub }}>{newLabel}</span>
         )}
       </div>
     </div>
