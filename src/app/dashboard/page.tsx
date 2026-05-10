@@ -28,7 +28,7 @@ function dateLabel(dateStr: string, lang: Lang): string {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { t, lang } = useI18n()
+  const { t, lang, setLang } = useI18n()
   const [pages, setPages]       = useState<Page[]>([])
   const [loading, setLoading]   = useState(true)
   const [toast, setToast]       = useState(false)
@@ -169,7 +169,14 @@ export default function DashboardPage() {
       <div style={{ position:'fixed', top:0, right:0, width:'min(280px, 82vw)', height:'100vh', background: C.navBg, borderLeft:`1px solid ${C.sep}`, zIndex:201, transform: menuOpen ? 'translateX(0)' : 'translateX(100%)', transition:'transform .28s cubic-bezier(0.4,0,0.2,1)', display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'52px 18px 18px', borderBottom:`1px solid ${C.sep}` }}>
           <span style={{ fontSize:16, fontWeight:700, color: C.title }}>{t('dashMenu')}</span>
-          <button onClick={() => setMenuOpen(false)} style={{ background:'none', border:'none', color: C.sub, fontSize:22, cursor:'pointer', lineHeight:1, padding:4 }}>✕</button>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <button
+              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              style={{ fontSize:11, fontWeight:700, color: C.sub, background:'rgba(255,255,255,0.06)', border:`1px solid ${C.sep}`, borderRadius:16, padding:'4px 10px', cursor:'pointer' }}>
+              {lang === 'ar' ? 'EN' : 'AR'}
+            </button>
+            <button onClick={() => setMenuOpen(false)} style={{ background:'none', border:'none', color: C.sub, fontSize:22, cursor:'pointer', lineHeight:1, padding:4 }}>✕</button>
+          </div>
         </div>
         <div style={{ flex:1, padding:'8px 0' }}>
           {[

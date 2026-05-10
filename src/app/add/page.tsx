@@ -347,7 +347,7 @@ export default function AddPage() {
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
                 <button onClick={() => { setAddReviewMode(null); setAddSelectedKeys(new Set()); setAddSelectedWords([]) }} style={{ background:'none', border:'none', color:'var(--sub)', cursor:'pointer', fontSize:13, fontFamily:'Amiri, serif' }}>{t('addChange')}</button>
                 <span style={{ fontSize:12, color:'var(--sub)', fontWeight:600 }}>
-                  {addSelectedWords.length > 0 ? `${addSelectedWords.length} ${t('pagesWord')}` : t('addWordTap')}
+                  {addSelectedWords.length > 0 ? `${addSelectedWords.length} ${t('wordsLabel')}` : t('addWordTap')}
                 </span>
               </div>
               {addSelectedWords.length > 0 && (

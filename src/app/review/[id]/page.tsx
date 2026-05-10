@@ -222,7 +222,7 @@ export default function ReviewPage() {
         </span>
         {reviewMode === 'words' && selectedKeys.size > 0 && (
           <span style={{ marginRight:'auto', fontSize:13, fontWeight:700, color:'#EF4444', background:'rgba(239,68,68,0.12)', padding:'4px 12px', borderRadius:20 }}>
-            {selectedKeys.size} {t('pagesWord')}
+            {selectedKeys.size} {t('wordsLabel')}
           </span>
         )}
       </div>
@@ -329,7 +329,7 @@ export default function ReviewPage() {
                 {saving
                   ? t('savingBtn')
                   : selectedWords.length > 0
-                    ? `${t('deleteWord')} ${selectedWords.length} ${t('pagesWord')}`
+                    ? `${t('saveVerb')} ${selectedWords.length} ${t('wordsLabel')}`
                     : t('rvWordsNoMistakes')}
               </button>
             )}

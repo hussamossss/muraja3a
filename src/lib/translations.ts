@@ -10,6 +10,9 @@ export const translations = {
     pageWord:    'صفحة',
     pagesWord:   'صفحات',
     daysWord:    'يوم',
+    wordLabel:   'كلمة',
+    wordsLabel:  'كلمات',
+    saveVerb:    'حفظ',
 
     // ── Auth ──
     authAppTitle:    'مجدول مراجعة الحفظ',
@@ -277,6 +280,9 @@ export const translations = {
     pageWord:    'Page',
     pagesWord:   'pages',
     daysWord:    'days',
+    wordLabel:   'word',
+    wordsLabel:  'words',
+    saveVerb:    'Save',
 
     // ── Auth ──
     authAppTitle:    'Quran Review Scheduler',
