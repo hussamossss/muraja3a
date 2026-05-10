@@ -6,7 +6,7 @@ import { useI18n } from '@/lib/i18n'
 
 export default function AccountPage() {
   const router = useRouter()
-  const { t }  = useI18n()
+  const { t, lang, setLang } = useI18n()
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -29,6 +29,19 @@ export default function AccountPage() {
             <div style={{ fontSize:16, fontWeight:700, color:'var(--cream)' }}>{t('accMyAccount')}</div>
             <div style={{ fontSize:12, color:'var(--sub)', marginTop:3 }}>{t('accSub')}</div>
           </div>
+        </div>
+
+        {/* Language toggle */}
+        <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, padding:'16px 18px', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div>
+            <div style={{ fontSize:14, fontWeight:600, color:'var(--cream)' }}>{lang === 'ar' ? 'اللغة' : 'Language'}</div>
+            <div style={{ fontSize:11, color:'var(--sub)', marginTop:2 }}>{lang === 'ar' ? 'عربي' : 'English'}</div>
+          </div>
+          <button
+            onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+            style={{ fontSize:13, fontWeight:700, color:'var(--cream)', background:'rgba(255,255,255,0.08)', border:'1px solid var(--border)', borderRadius:20, padding:'7px 18px', cursor:'pointer' }}>
+            {lang === 'ar' ? 'EN ›' : 'AR ›'}
+          </button>
         </div>
 
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, padding:'16px 18px', marginBottom:24 }}>

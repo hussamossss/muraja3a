@@ -16,7 +16,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('muraja3a-lang') as Lang | null
-    if (saved === 'en' || saved === 'ar') setLangState(saved)
+    if (saved === 'en' || saved === 'ar') {
+      // User has an explicit preference — honour it
+      setLangState(saved)
+    } else {
+      // First visit: detect from browser locale
+      const browserLang = navigator.language || ''
+      const detected: Lang = browserLang.toLowerCase().startsWith('ar') ? 'ar' : 'en'
+      setLangState(detected)
+      // Don't save yet — only save on explicit user toggle
+    }
   }, [])
 
   function setLang(l: Lang) {
