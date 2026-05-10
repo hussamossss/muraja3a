@@ -1,0 +1,27 @@
+{
+  "name": "مُراجِع — Quran Review Scheduler",
+  "short_name": "مُراجِع",
+  "description": "Spaced repetition system for Quran memorization review",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F1411",
+  "theme_color": "#0F1411",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

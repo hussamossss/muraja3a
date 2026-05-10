@@ -10,7 +10,7 @@ import { useI18n } from '@/lib/i18n'
 
 export default function StatsPage() {
   const router = useRouter()
-  const { t, lang, setLang } = useI18n()
+  const { t } = useI18n()
   const [pages,    setPages]    = useState<Page[]>([])
   const [logs,     setLogs]     = useState<ReviewLog[]>([])
   const [mistakes, setMistakes] = useState<WordMistake[]>([])
@@ -105,12 +105,7 @@ export default function StatsPage() {
       {/* Header */}
       <div style={{ background:'var(--bg)', padding:'48px 16px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={() => router.back()} style={backBtn}>‹</button>
-        <span style={{ fontSize:18, fontWeight:700, color:'var(--cream)', flex:1 }}>{t('statsTitle')}</span>
-        <button
-          onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-          style={{ fontSize:12, fontWeight:700, color:'var(--sub)', background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', borderRadius:20, padding:'5px 14px', cursor:'pointer' }}>
-          {lang === 'ar' ? 'EN' : 'AR'}
-        </button>
+        <span style={{ fontSize:18, fontWeight:700, color:'var(--cream)' }}>{t('statsTitle')}</span>
       </div>
 
       <div style={{ flex:1, padding:'20px 16px 86px', overflowY:'auto' }}>

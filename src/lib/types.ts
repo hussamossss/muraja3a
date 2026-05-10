@@ -68,6 +68,39 @@ export interface Page {
   reading_count:   number
 }
 
+// ── Notifications ─────────────────────────────────────────────────────────────
+export interface UserPreferences {
+  user_id:        string
+  timezone:       string        // IANA, e.g. "Asia/Riyadh"
+  reminder_hour:  number        // 0-23, local time
+  email_enabled:  boolean
+  push_enabled:   boolean
+  lang:           'ar' | 'en'
+  created_at:     string
+  updated_at:     string
+}
+
+export interface PushSubscriptionRow {
+  id:          string
+  user_id:     string
+  endpoint:    string
+  p256dh:      string
+  auth:        string
+  user_agent:  string | null
+  created_at:  string
+}
+
+export interface NotificationLog {
+  id:          string
+  user_id:     string
+  sent_date:   string
+  channel:     'email' | 'push'
+  due_count:   number
+  status:      'sent' | 'failed' | 'skipped'
+  error:       string | null
+  created_at:  string
+}
+
 export interface ReviewLog {
   id: string
   user_id: string

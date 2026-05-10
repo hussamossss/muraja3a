@@ -1,6 +1,6 @@
 export type Lang = 'ar' | 'en'
 
-export const translations = {
+const base = {
   ar: {
     // ── App-wide ──
     savingBtn:   'جارٍ الحفظ...',
@@ -269,6 +269,27 @@ export const translations = {
     stageActive:      'نشطة',
     stageMature:      'راسخة',
     pageAbbr:         'ص',
+
+    // ── Test Page ──
+    testTitle:    'الاختبار المفاجئ',
+    testComingSoon: 'هذه الميزة قادمة إن شاء الله',
+
+    // ── Notifications (Account page) ──
+    accNotifTitle:        'الإشعارات',
+    accEmailReminder:     'تذكير عبر البريد',
+    accPushNotif:         'إشعارات المتصفح',
+    accPushPermDefault:   'فعّل للسماح بالإشعارات',
+    accPushPermGranted:   'مفعّلة',
+    accPushPermDenied:    'محظورة من إعدادات المتصفح',
+    accPushNotSupported:  'غير مدعومة على هذا المتصفح',
+    accInstallPwaForIos:  'لتفعيل الإشعارات على iOS، ثبّت التطبيق على الشاشة الرئيسية من قائمة المشاركة',
+    accReminderTime:      'وقت التذكير',
+    accReminderTimeHelp:  'يُرسَل بهذا التوقيت بحسب توقيتك المحلي',
+    accSendTest:          'إرسال إشعار تجريبي',
+    accTestSending:       'جارٍ الإرسال...',
+    accTestSent:          'تم الإرسال ✓',
+    accTestFailed:        'فشل الإرسال',
+    accNoSubsForTest:     'فعّل إشعارات المتصفح أولاً',
   },
 
   en: {
@@ -539,7 +560,31 @@ export const translations = {
     stageActive:      'Active',
     stageMature:      'Mature',
     pageAbbr:         'p.',
+
+    // ── Test Page ──
+    testTitle:    'Surprise Quiz',
+    testComingSoon: 'This feature is coming soon',
+
+    // ── Notifications (Account page) ──
+    accNotifTitle:        'Notifications',
+    accEmailReminder:     'Email reminder',
+    accPushNotif:         'Push notifications',
+    accPushPermDefault:   'Tap to enable',
+    accPushPermGranted:   'Enabled',
+    accPushPermDenied:    'Blocked in browser settings',
+    accPushNotSupported:  'Not supported on this browser',
+    accInstallPwaForIos:  'To enable push on iOS, install the app to your home screen via the Share menu',
+    accReminderTime:      'Reminder time',
+    accReminderTimeHelp:  'Sent at this hour in your local timezone',
+    accSendTest:          'Send test notification',
+    accTestSending:       'Sending...',
+    accTestSent:          'Sent ✓',
+    accTestFailed:        'Failed to send',
+    accNoSubsForTest:     'Enable push notifications first',
   },
 } satisfies Record<Lang, Record<string, string>>
 
-export type TranslationKey = keyof typeof translations['ar']
+export type TranslationKey = keyof typeof base['ar']
+
+// Extra languages can be partial — missing keys fall back to English in t()
+export const translations: Record<string, Partial<Record<TranslationKey, string>>> = base

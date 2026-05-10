@@ -33,7 +33,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('muraja3a-lang', l)
   }
 
-  const t = (k: TranslationKey) => translations[lang][k]
+  const t = (k: TranslationKey): string => translations[lang]?.[k] ?? translations['en'][k] ?? k
 
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>
 }
