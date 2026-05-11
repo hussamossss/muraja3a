@@ -175,6 +175,7 @@ export default function DashboardPage() {
           {[
             { icon:'📅', label: t('dashMenuCalendar'), desc: t('dashMenuCalendarDesc'), action:() => { setMenuOpen(false); router.push('/calendar') } },
             { icon:'👤', label: t('dashMenuAccount'),  desc: t('dashMenuAccountDesc'),  action:() => { setMenuOpen(false); router.push('/account')  } },
+            { icon:'❤️', label: t('dashMenuSupport'),  desc: t('dashMenuSupportDesc'),  action:() => { setMenuOpen(false); router.push('/support')  } },
           ].map((item, i) => (
             <button key={i} onClick={item.action} style={{ display:'flex', alignItems:'center', gap:14, width:'100%', padding:'16px 18px', background:'none', border:'none', borderBottom:`1px solid ${C.sep}`, cursor:'pointer', fontFamily:'Amiri, serif', textAlign:'right' }}>
               <span style={{ fontSize:22, flexShrink:0 }}>{item.icon}</span>

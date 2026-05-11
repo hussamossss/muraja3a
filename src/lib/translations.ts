@@ -290,6 +290,21 @@ const base = {
     accTestSent:          'تم الإرسال ✓',
     accTestFailed:        'فشل الإرسال',
     accNoSubsForTest:     'فعّل إشعارات المتصفح أولاً',
+
+    // ── Dashboard menu: Support item ──
+    dashMenuSupport:      'ادعم المطوّر',
+    dashMenuSupportDesc:  'ساهم في استمرار التطبيق',
+
+    // ── Support page ──
+    supportTitle:       'ادعمني',
+    supportHeading:     'ادعم المطوّر',
+    supportLead:        'مُراجِع مجاني تماماً، بلا إعلانات ولا اشتراك.',
+    supportBody:        'أطوّره وحدي في وقتي الخاص، ومساهمتك تساعد على استمراره وتطويره. كل دعم — مهما صغر — يُقدَّر.',
+    supportCoffeeLabel: 'Buy Me a Coffee',
+    supportCoffeeDesc:  'دعم عبر بطاقة دفع أو Apple Pay',
+    supportPaypalLabel: 'PayPal',
+    supportPaypalDesc:  'تحويل بحسابك أو بطاقتك',
+    supportThanks:      'شكراً لكل من ساهم 🌿',
   },
 
   en: {
@@ -581,6 +596,21 @@ const base = {
     accTestSent:          'Sent ✓',
     accTestFailed:        'Failed to send',
     accNoSubsForTest:     'Enable push notifications first',
+
+    // ── Dashboard menu: Support item ──
+    dashMenuSupport:      'Support the developer',
+    dashMenuSupportDesc:  'Help keep the app running',
+
+    // ── Support page ──
+    supportTitle:       'Support me',
+    supportHeading:     'Support the developer',
+    supportLead:        'Muraja3a is completely free — no ads, no subscription.',
+    supportBody:        "I'm building it solo in my own time. Your contribution helps keep it running and growing. Every bit — however small — is appreciated.",
+    supportCoffeeLabel: 'Buy Me a Coffee',
+    supportCoffeeDesc:  'Pay with card or Apple Pay',
+    supportPaypalLabel: 'PayPal',
+    supportPaypalDesc:  'Send via PayPal account or card',
+    supportThanks:      'Thank you to everyone who contributes 🌿',
   },
 } satisfies Record<Lang, Record<string, string>>
 
