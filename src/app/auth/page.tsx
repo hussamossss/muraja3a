@@ -33,7 +33,8 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <div style={{ background:'var(--bg)', borderBottom:'1px solid var(--border)', padding:'48px 20px 32px', textAlign:'center' }}>
-        <div style={{ fontSize:48, marginBottom:8 }}>📖</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-192.png" alt="" width={72} height={72} style={{ borderRadius:16, marginBottom:8 }}/>
         <div style={{ fontSize:22, fontWeight:700, color:'var(--cream)' }}>{t('authAppTitle')}</div>
         <div style={{ fontSize:13, color:'var(--sub)', marginTop:6 }}>{t('authAppSub')}</div>
       </div>
