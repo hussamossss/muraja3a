@@ -76,16 +76,23 @@ function updateStability(stability: number, level: MistakeLevel, R: number, diff
       raw = Math.max(1, stability * 0.1)
       break
     case 'many':
-      raw = Math.max(Math.max(1, stability * 0.3), stability * 0.5)
+      raw = Math.max(1, stability * 0.5)
       break
     case 'few':
       raw = Math.max(1, stability * 0.7)
       break
+    case 'impactful':
+      // A single impactful error means the user actually failed (stopped or
+      // changed the meaning), not a hard-but-successful recall. So stability
+      // must DECAY, not grow — milder than `few` (2-3 errors) at 0.7.
+      raw = Math.max(1, stability * 0.85)
+      break
     default: {
-      const baseMult: Record<MistakeLevel, number> = { perfect: 2.0, minor: 1.6, impactful: 1.2, few: 0, many: 0, lapse: 0 }
+      // Only success-side levels reach here: perfect, minor.
+      const baseMult: Record<'perfect' | 'minor', number> = { perfect: 2.0, minor: 1.6 }
       const fi   = 1 + (1 - R) * 0.8
       const df   = 1 - diff * 0.4
-      const gf   = Math.min(baseMult[level] * fi * df, MAX_GROWTH)
+      const gf   = Math.min(baseMult[level as 'perfect' | 'minor'] * fi * df, MAX_GROWTH)
       raw = stability * gf
     }
   }
@@ -100,8 +107,14 @@ function updateStage(
   consecGood: number,
 ): ReviewStage {
   if (level === 'lapse') return lapses > 2 ? 'fragile' : 'learning'
-  if (level === 'many')  return current === 'mature' || current === 'review' ? 'fragile' : 'learning'
+  // `many` (4-6 errors) is severe but not a full lapse — never demote below
+  // `fragile`. A fragile page that struggles again stays fragile, matching
+  // how `lapse` with lapses>2 also stays fragile.
+  if (level === 'many') return current === 'learning' ? 'learning' : 'fragile'
   if (current === 'fragile' && consecGood >= 2) return 'review'
+  // Fast-track: a learning page can graduate straight to `mature` if its
+  // stability has already grown past 21 days — typically only happens after
+  // warm-up ends at stability=21 followed by a clean perfect/minor review.
   if (stability >= 21 && (level === 'perfect' || level === 'minor')) return 'mature'
   if (current === 'learning' && stability >= 7) return 'review'
   if (current === 'mature' && (level === 'impactful' || level === 'few')) return 'fragile'

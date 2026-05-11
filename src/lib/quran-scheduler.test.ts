@@ -227,6 +227,42 @@ describe('full algorithm', () => {
     expect(result.newConsecutiveGood).toBe(1)
     expect(result.newLapses).toBe(0)
   })
+
+  it('mature(stability=60) + impactful + 30d elapsed → stability DECAYS to 60×0.85=51, stage=fragile', () => {
+    // Regression guard: an `impactful` error means the user actually failed
+    // (stopped or changed the meaning). Stability must shrink, not grow.
+    const page = makePage({
+      warm_up_count:    5,
+      stability_days:   60,
+      difficulty:       0.3,
+      review_stage:     'mature',
+      lapses:           0,
+      consecutive_good: 0,
+      last_reviewed_at: '2026-03-29', // 30 days before TODAY
+    })
+    const result = scheduleReview(page, 'impactful', TODAY)
+    expect(result.stabilityAfter).toBeLessThan(60)
+    expect(result.stabilityAfter).toBe(51)
+    expect(result.stageAfter).toBe('fragile')
+    expect(result.newConsecutiveGood).toBe(0)
+    expect(result.newLapses).toBe(0)
+  })
+
+  it('fragile + many → stays fragile (not demoted to learning)', () => {
+    // Regression guard: `many` should match the behaviour of `lapse` with
+    // lapses>2 — fragile pages don't get demoted further.
+    const page = makePage({
+      warm_up_count:    5,
+      stability_days:   5,
+      difficulty:       0.3,
+      review_stage:     'fragile',
+      lapses:           1,
+      consecutive_good: 0,
+      last_reviewed_at: '2026-04-21',
+    })
+    const result = scheduleReview(page, 'many', TODAY)
+    expect(result.stageAfter).toBe('fragile')
+  })
 })
 
 // ── Edge cases ────────────────────────────────────────────────────────────────
