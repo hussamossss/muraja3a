@@ -66,7 +66,11 @@ function LandingPage() {
 
       {/* Navbar */}
       <nav style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 28px', borderBottom:`1px solid ${T.border}`, position:'sticky', top:0, background:`${T.bg}F0`, backdropFilter:'blur(12px)', zIndex:10 }}>
-        <div style={{ fontSize:22, fontWeight:800, color: T.green, letterSpacing:-.5 }}>مُراجِع</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon-192.png" alt="" width={32} height={32} style={{ borderRadius:8 }}/>
+          <span style={{ fontSize:22, fontWeight:800, color: T.green, letterSpacing:-.5 }}>مُراجِع</span>
+        </div>
         <div style={{ display:'flex', gap:12, alignItems:'center' }}>
           <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ background:'rgba(255,255,255,0.06)', border:`1px solid ${T.border}`, color: T.sub, fontSize:12, fontWeight:700, padding:'6px 14px', borderRadius:20, cursor:'pointer' }}>
             {lang === 'ar' ? 'EN' : 'AR'}

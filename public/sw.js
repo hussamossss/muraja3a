@@ -25,8 +25,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.body,
-      icon: '/icon.svg',
-      badge: '/icon.svg',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       lang: payload.lang || 'ar',
       dir: payload.lang === 'en' ? 'ltr' : 'rtl',
       tag: payload.tag || 'due-reminder',
